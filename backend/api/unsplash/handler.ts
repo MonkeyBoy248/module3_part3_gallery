@@ -7,9 +7,9 @@ const unsplashManager = new UnsplashManager();
 
 export const getPicturesByAKeyWord: APIGatewayProxyHandler = async (event, context) => {
   try {
-    const query = event.body;
-    console.log('event body', query);
-    const response = await unsplashManager.getPicturesByAKeyWord(query);
+    const query = event.queryStringParameters;
+    console.log('event body', query?.keyWord);
+    const response = await unsplashManager.getPicturesByAKeyWord(query?.keyWord);
 
     return createResponse(200, response);
   } catch (err) {
