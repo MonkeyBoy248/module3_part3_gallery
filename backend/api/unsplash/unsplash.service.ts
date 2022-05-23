@@ -2,6 +2,7 @@ import {createApi} from 'unsplash-js';
 import fetch from "node-fetch";
 import {getEnv} from "@helper/environment";
 import {HttpBadRequestError} from "@floteam/errors";
+import {UnsplashSearchResponse} from "./unsplash.interface";
 
 export class UnsplashService {
   private accessKey = getEnv('UNSPLASH_ACCESS_KEY');
@@ -22,7 +23,15 @@ export class UnsplashService {
 
       console.log('pictures', pictures.response?.results)
       console.log('pictures status', pictures.status);
+      const result = pictures.response?.results;
 
-      return pictures.response?.results;
+      const picturesInfo: UnsplashSearchResponse[] =  result.map((picture) => {
+        return {
+          id: picture.id,
+          urls: picture.urls
+        }
+      })
+
+      return picturesInfo;
   }
 }
