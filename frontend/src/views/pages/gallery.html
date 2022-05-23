@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery</title>
+    <link rel="stylesheet" href="../styles/style.css">
+  <script type="module" src="../scripts/gallery.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="header__container _container">
+      <div class="header__inner">
+        <div class="header__title-wrapper">
+          <h1 class="header__title">Gallery</h1>
+          <div class="header__user-info">
+            <img class="header__user-icon" src="../../../public/icons/user.png" alt="">
+            <div class="header__current-user-email"></div>
+          </div>
+        </div>
+        <div class="header__controls__wrapper">
+          <div class="header__options-bar">
+            <div class="header__limit-wrapper">
+              <label class="header__limit-label" for="header__limit-input">Pictures per page</label>
+              <input class="header__limit-input" type="text" id="header__limit-input">
+              <button class="header__set-limit-button">Set limit</button>
+            </div>
+            <div class="header__filter-wrapper">
+              <label class="header__filter-label" for="header__filter-checkbox">Uploaded pictures only</label>
+              <input class="header__filter-checkbox" type="checkbox" name="filter" id="header__filter-checkbox">
+            </div>
+          </div>
+          <div class="header__upload-wrapper">
+            <form class="header__upload-form">
+              <label class="header__upload-label" for="header__upload-input">
+                Select a file
+              </label>
+              <input class="header__upload-input _hidden"
+                     type="file"
+                     name="picturedata"
+                     id="header__upload-input"
+              >
+              <input class="header__upload-submit-button" type="submit" value="Upload file">
+            </form>
+            <div class="header__files-container"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main class="main">
+    <section class="gallery">
+      <div class="gallery__container _container">
+        <div class="gallery__inner">
+          <div class="gallery__photos">
+          </div>
+          <nav class="gallery__pages">
+            <ul class="gallery__links-list">
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div class="gallery__error-pop-up">
+    <div class="gallery__pop-up-container">
+      <div class="gallery__error">
+        <span class="gallery__notification-sign">!</span>
+        <p class="gallery__error-message"></p>
+      </div>
+    </div>
+  </div>
+  <template class="gallery__template">
+    <figure class="gallery__picture-wrapper">
+      <img class="gallery__img" src="" alt="">
+    </figure>
+  </template>
+  <template class="gallery__link-template">
+    <li class="gallery__link-item">
+      <a href="" class="gallery__page-link"></a>
+    </li>
+  </template>
+</body>
+</html>

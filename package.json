@@ -1,0 +1,21 @@
+{
+  "name": "module3_part2_gallery",
+  "version": "1.0.0",
+  "scripts": {
+    "dependencies:install": "cd backend && npm i",
+    "deploy:dev": "cd backend && npm run deploy:dev",
+    "build:front": "cd frontend && tsc",
+    "remove": "cd backend && npm run serverless:remove"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MonkeyBoy248/module3_part2_gallery.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MonkeyBoy248/module3_part2_gallery/issues"
+  },
+  "homepage": "https://github.com/MonkeyBoy248/module3_part2_gallery#readme"
+}

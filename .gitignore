@@ -1,0 +1,24 @@
+node_modules
+offline
+jspm_packages
+.idea/
+.vscode/
+.webpack/
+**/.webpack
+.tmp
+.scannerwork/
+
+# Serverless directories
+backend/.serverless/
+backend/.build/
+backend/kms_key.yml
+backend/.env
+**/.env
+**/api/**.js
+backend/.nyc_output/
+backend/typings/
+backend/documentation/
+backend/coverage/
+backend/.esbuild/
+/frontend/src/views/modules/
+/frontend/src/views/scripts/
