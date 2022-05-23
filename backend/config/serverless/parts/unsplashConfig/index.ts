@@ -5,7 +5,7 @@ export const getUnsplashPictures =  {
   events: [
     {
       httpApi: {
-        path: '/unsplash/getUnsplashPictures',
+        path: '/unsplash/getPictures',
         method: 'get',
         authorizer: {
           name: 'httpApiJwtAuthorizer'
