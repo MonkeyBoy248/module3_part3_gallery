@@ -1,7 +1,7 @@
 import { CustomEventListener, ListenerRemover } from "../modules/custom_event_listener.js";
 import { Token } from "../modules/token_management.js";
 import { PicturesUploadError, InvalidPageError, TokenError } from "../modules/errors.js";
-import { GalleryData } from "../modules/interfaces.js";
+import {GalleryData, UnsplashSearchResponse} from "../modules/interfaces.js";
 import * as env from "../modules/environment_variables.js";
 
 const galleryPhotos = document.querySelector('.gallery__photos') as HTMLElement;
@@ -21,6 +21,8 @@ const headerLimitInput = document.querySelector('.header__limit-input') as HTMLI
 const setLimitButton = document.querySelector('.header__set-limit-button') as HTMLButtonElement;
 const filterCheckbox = document.querySelector('.header__filter-checkbox') as HTMLInputElement;
 const currentUserEmailOutput = document.querySelector('.header__current-user-email') as HTMLOutputElement;
+const keyWordInput = document.querySelector('.header__key-word-input') as HTMLInputElement;
+const keyWordButton = document.querySelector('.header__key-word-button') as HTMLButtonElement;
 const galleryEventsArray: CustomEventListener[] = [
   {target: document, type: 'DOMContentLoaded', handler: setInitialInformation},
   {target: pagesLinksList, type: 'click', handler: changeCurrentPage},
@@ -29,7 +31,8 @@ const galleryEventsArray: CustomEventListener[] = [
   {target: galleryUploadInput, type: 'change', handler: showSelectedFilePath},
   {target: setLimitButton, type: 'click', handler: setLimit},
   {target: filterCheckbox, type: 'change', handler: addFilterValueToURL},
-  {target: headerLimitInput, type: 'input', handler: validateLimitValue}
+  {target: headerLimitInput, type: 'input', handler: validateLimitValue},
+  {target: keyWordButton, type: 'click', handler: setKeyWordValueToURL}
 ]
 
 interface Metadata {
@@ -51,7 +54,10 @@ async function getPicturesData (): Promise<void>{
   const url = setCurrentPageUrl();
   const tokenObject = Token.getToken();
   const tokenProperty = tokenObject?.token;
-  const emptyGalleryMessage = document.querySelector('.gallery__empty-message') as HTMLElement;
+
+  setPageNumber();
+  setLimitPlaceholder();
+  setCurrentCheckboxValue();
 
   if (tokenObject) {
     try {
@@ -76,23 +82,10 @@ async function getPicturesData (): Promise<void>{
 
       console.log('data', data);
 
-      if (emptyGalleryMessage !== null) {
-        emptyGalleryMessage.remove();
-      }
+      setEmptyResponseMessage(data.objects, 'No pictures uploaded');
 
-      if (data.objects.length === 0) {
-        const noPicturesMessage = document.createElement('p');
-        noPicturesMessage.className = 'gallery__empty-message';
-        noPicturesMessage.textContent = 'No pictures uploaded';
-
-        galleryInner.append(noPicturesMessage);
-      }
-
-      createPictureTemplate(data);
+      createPictureTemplate(data.objects);
       createLinksTemplate(data.total);
-      setPageNumber();
-      setLimitPlaceholder();
-      setCurrentCheckboxValue();
     } catch (err){
         if (err instanceof InvalidPageError) {
           const nonexistentPageNumber = new URL(url).searchParams.get('page');
@@ -111,6 +104,24 @@ async function getPicturesData (): Promise<void>{
 
         console.log(err);
     }
+  }
+}
+
+function setEmptyResponseMessage (data: string[] | UnsplashSearchResponse[], message: string) {
+  const emptyGalleryMessage = document.querySelector('.gallery__empty-message') as HTMLElement;
+
+  if (emptyGalleryMessage !== null) {
+    emptyGalleryMessage.remove();
+
+    return;
+  }
+
+  if (data.length === 0) {
+    const noPicturesMessage = document.createElement('p');
+    noPicturesMessage.className = 'gallery__empty-message';
+    noPicturesMessage.textContent = message;
+
+    galleryInner.append(noPicturesMessage);
   }
 }
 
@@ -173,6 +184,32 @@ async function sendUserPicture () {
   }
 }
 
+async function getUnsplashPictures () {
+  const keyWordValue = env.currentUrl.searchParams.get('keyWord');
+  const url = `${env.unsplashServerUrl}?keyWord=${keyWordValue}`;
+  const tokenObject = Token.getToken();
+  const tokenProperty = tokenObject?.token;
+
+  filterCheckbox.disabled = true;
+  setLimitPlaceholder();
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: tokenProperty
+      }
+    });
+
+    const pictures: UnsplashSearchResponse[] = await response.json();
+    console.log('pictures', pictures);
+
+    setEmptyResponseMessage(pictures, 'Nothing found');
+    createPictureTemplate(pictures);
+  } catch (err) {
+    console.log(err);
+  }
+}
+
 function styleUploadingButton (value: string, disabled: boolean, clear: boolean) {
   gallerySubmitButton.value = value;
   gallerySubmitButton.disabled = disabled;
@@ -230,7 +267,6 @@ function getUserEmail () {
   }
 }
 
-
 function checkTokenValidity () {
   setInterval(() => {
     Token.deleteToken();
@@ -246,7 +282,6 @@ function redirectToTheTargetPage (e: Event) {
   const limit = env.currentUrl.searchParams.get('limit') || '4';
   const filter = env.currentUrl.searchParams.get('filter') || 'false';
 
-
   ListenerRemover.removeEventListeners(galleryEventsArray);
 
   if (target.getAttribute('error-type') === 'wrong-page-number') {
@@ -261,15 +296,20 @@ function redirectToTheTargetPage (e: Event) {
     );
 }
 
-function createPictureTemplate (pictures: GalleryData): void {
+function createPictureTemplate (pictures: string[] | UnsplashSearchResponse[]): void {
   galleryPhotos.innerHTML = ''
 
-  for (let object of pictures.objects) {
+  for (let link of pictures) {
     const picture = galleryTemplate.content.cloneNode(true) as HTMLElement;
-    const imageWrapper = picture.children[0];
+    const imageWrapper = picture.children[0] as HTMLElement;
     const image = imageWrapper.querySelector('.gallery__img') as HTMLElement;
-    
-    image.setAttribute('src', object);
+    const src = typeof link === 'string' ? link : link.urls.regular;
+
+    if (typeof link !== 'string') {
+      image.dataset.id = link.id;
+    }
+
+    image.setAttribute('src', src);
     galleryPhotos.insertAdjacentElement('beforeend', imageWrapper);
   }
 }
@@ -355,8 +395,9 @@ function setNewUrl (): void {
   const pageNumber = env.currentUrl.searchParams.get('page') || '1';
   const limit = env.currentUrl.searchParams.get('limit') || '4';
   const filter = env.currentUrl.searchParams.get('filter') || 'false';
+  const keyWord = env.currentUrl.searchParams.get('keyWord') || '';
 
-  window.location.href = `${env.galleryUrl}?page=${pageNumber}&limit=${limit}&filter=${filter}`;
+  window.location.href = `${env.galleryUrl}?page=${pageNumber}&limit=${limit}&filter=${filter}&keyWord=${keyWord}`;
 }
 
 function showMessage (text: string): void {
@@ -376,13 +417,14 @@ function redirectWhenTokenExpires (delay: number): void {
   const limit = env.currentUrl.searchParams.get('limit') || '4';
   const pageNumber = env.currentUrl.searchParams.get('page') || '1';
   const filter = env.currentUrl.searchParams.get('filter') || 'false';
+  const keyWord = env.currentUrl.searchParams.get('keyWord') || '';
 
   if (!Token.getToken()) {
     ListenerRemover.removeEventListeners(galleryEventsArray);
     updateMessageBeforeRedirection(delay / 1000);
     setTimeout(() => {
       window.location.replace(
-        `${env.loginUrl}?currentPage=${pageNumber}&limit=${limit}&filter=${filter}`
+        `${env.loginUrl}?currentPage=${pageNumber}&limit=${limit}&filter=${filter}&keyWord=${keyWord}`
       );
     }, delay)
   }
@@ -419,8 +461,9 @@ function validateLimitValue () {
 }
 
 function setLimit () {
-  const limitValue = headerLimitInput.value
+  const limitValue = headerLimitInput.value;
 
+  env.currentUrl.searchParams.set('limit', `${limitValue}`);
 
   setNewUrl();
 }
@@ -472,6 +515,20 @@ function setCurrentCheckboxValue () {
   filterCheckbox.checked = env.currentUrl.searchParams.get('filter') !== 'false';
 }
 
+function setKeyWordValueToURL () {
+  const keyWordValue = keyWordInput.value;
+
+  env.currentUrl.searchParams.set('keyWord', `${keyWordValue}`);
+  setNewUrl();
+}
+
+function setKeyWordInputValue () {
+  const currentKeyWordValue = env.currentUrl.searchParams.get('keyWord');
+  if (currentKeyWordValue) {
+    keyWordInput.value = currentKeyWordValue;
+  }
+}
+
 function displayUserEmail () {
   const email = getUserEmail();
 
@@ -480,7 +537,24 @@ function displayUserEmail () {
 
 async function setInitialInformation () {
   displayUserEmail();
+  setKeyWordInputValue();
+
+  const currentKeyWordValue = env.currentUrl.searchParams.get('keyWord')
+
+  if (currentKeyWordValue) {
+    await getUnsplashPictures();
+
+    return;
+  }
+
   await getPicturesData();
+}
+
+function getClickedPictureId (e: Event) {
+  const target = e.target as HTMLElement;
+  const imageWrapper = target.closest('figure');
+
+  console.log('picture id', target.dataset.id)
 }
 
 document.addEventListener('DOMContentLoaded', setInitialInformation);
@@ -491,6 +565,9 @@ galleryUploadInput.addEventListener('change', processFileInfo);
 setLimitButton.addEventListener('click', setLimit);
 headerLimitInput.addEventListener('input', validateLimitValue);
 filterCheckbox.addEventListener('change', addFilterValueToURL);
+keyWordButton.addEventListener('click', setKeyWordValueToURL);
+galleryPhotos.addEventListener('click', getClickedPictureId);
+
 
 
 

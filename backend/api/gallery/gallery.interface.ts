@@ -1,5 +1,5 @@
 export interface GalleryObject {
-  objects: string[];
+  objects: string[],
   page: number;
   total: number;
 }
