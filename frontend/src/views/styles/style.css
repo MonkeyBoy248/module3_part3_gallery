@@ -265,11 +265,17 @@ body {
   border: 1px solid #fff;
 }
 
+.liked {
+  outline: 2px #e9982d solid;
+  transform: scale(1.01);
+}
+
 .gallery__img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 10px;
+  transition: .2s ease-in-out;
 }
 
 .gallery__divider {

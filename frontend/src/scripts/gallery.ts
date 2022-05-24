@@ -23,6 +23,7 @@ const filterCheckbox = document.querySelector('.header__filter-checkbox') as HTM
 const currentUserEmailOutput = document.querySelector('.header__current-user-email') as HTMLOutputElement;
 const keyWordInput = document.querySelector('.header__key-word-input') as HTMLInputElement;
 const keyWordButton = document.querySelector('.header__key-word-button') as HTMLButtonElement;
+const favoritePictureIds: string[] = [];
 const galleryEventsArray: CustomEventListener[] = [
   {target: document, type: 'DOMContentLoaded', handler: setInitialInformation},
   {target: pagesLinksList, type: 'click', handler: changeCurrentPage},
@@ -550,11 +551,32 @@ async function setInitialInformation () {
   await getPicturesData();
 }
 
-function getClickedPictureId (e: Event) {
-  const target = e.target as HTMLElement;
-  const imageWrapper = target.closest('figure');
+function getClickedPictureId (target: HTMLElement, id: string) {
+  if (favoritePictureIds.includes(id)) {
+    const pictureIndex = favoritePictureIds.indexOf(id);
 
-  console.log('picture id', target.dataset.id)
+    target.classList.remove('liked');
+    favoritePictureIds.splice(pictureIndex);
+    console.log('deleted');
+
+    return;
+  }
+
+  favoritePictureIds.push(id);
+  target.classList.add('liked');
+
+  console.log(favoritePictureIds);
+
+  return favoritePictureIds;
+}
+
+function addToFavorites (e: Event) {
+  const target = e.target as HTMLElement;
+  const id = target.dataset.id;
+
+  if (id) {
+    getClickedPictureId(target, id);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', setInitialInformation);
@@ -566,7 +588,7 @@ setLimitButton.addEventListener('click', setLimit);
 headerLimitInput.addEventListener('input', validateLimitValue);
 filterCheckbox.addEventListener('change', addFilterValueToURL);
 keyWordButton.addEventListener('click', setKeyWordValueToURL);
-galleryPhotos.addEventListener('click', getClickedPictureId);
+galleryPhotos.addEventListener('click', addToFavorites);
 
 
 
