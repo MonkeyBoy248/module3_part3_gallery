@@ -16,35 +16,18 @@ export const getPicturesByAKeyWord: APIGatewayProxyHandler = async (event, conte
     return errorHandler(err);
   }
 };
-// export const uploadUserPicture: APIGatewayProxyHandler = async (event, context) => {
-//   console.log(event);
-//
-//   try {
-//     const manager = new GalleryManager();
-//
-//
-//     const email = event.requestContext.authorizer?.jwt.claims.email as string;
-//     const file = await multipartParser.parse(event);
-//     const response = await manager.uploadUserPicture(file, email);
-//
-//     return createResponse(200, response);
-//   } catch (err) {
-//     return errorHandler(err);
-//   }
-// }
 
-// export const uploadDefaultPictures: APIGatewayProxyHandlerV2 = async (event, context) => {
-//   console.log(event);
-//
-//   try {
-//     const manager = new GalleryManager();
-//
-//     const response = await manager.uploadDefaultPictures();
-//
-//     return createResponse(200, response);
-//   } catch (err) {
-//     return errorHandler(err);
-//   }
-// }
+export const getFavoritesUploadLinks: APIGatewayProxyHandler = async (event, context) => {
+  try {
+    const ids = event.body;
+    console.log('Favorite id', ids);
+    const response = await unsplashManager.getFavoritesUploadLinks(ids);
+    console.log('Download link', response);
+
+    return createResponse(200, response);
+  } catch (err) {
+    return errorHandler(err)
+  }
+}
 
 

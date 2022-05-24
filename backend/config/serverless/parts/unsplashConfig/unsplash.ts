@@ -1,8 +1,9 @@
 import { AWSPartitial } from '../../types';
-import {getUnsplashPictures} from "./index";
+import {getUnsplashPictures, uploadFavoritePictures} from "./index";
 
 export const unsplashConfig: AWSPartitial = {
   functions: {
-    getUnsplashPictures
+    getUnsplashPictures,
+    uploadFavoritePictures
   },
 }
