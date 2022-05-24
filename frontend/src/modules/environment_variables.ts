@@ -6,7 +6,8 @@ const galleryServerUrl = `${baseUrl}/gallery`;
 const logInServerUrl = `${baseUrl}/auth/login`;
 const uploadPictureServerUrl = `${baseUrl}/gallery/upload-picture`;
 const signUpServerUrl = `${baseUrl}/auth/signup`;
-const unsplashServerUrl = `${baseUrl}/unsplash/pictures`;
+const unsplashPicturesServerUrl = `${baseUrl}/unsplash/pictures`;
+const unsplashFavoritesUrl = `${baseUrl}/unsplash/favorites`;
 const galleryUrl = `./gallery.html`;
 const loginUrl = `./index.html`;
 const currentUrl = new URL(window.location.href);
@@ -22,5 +23,6 @@ export {
   galleryUrl,
   loginUrl,
   currentUrl,
-  unsplashServerUrl
+  unsplashPicturesServerUrl,
+  unsplashFavoritesUrl
 }

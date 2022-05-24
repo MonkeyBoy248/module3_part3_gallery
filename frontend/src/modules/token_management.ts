@@ -3,7 +3,7 @@ import {TokenObject} from "./interfaces.js";
 export class Token {
   private static TOKEN_KEY: string = 'token';
 
-  static getToken (): TokenObject {
+  static getTokenObject (): TokenObject {
     return JSON.parse(localStorage.getItem(Token.TOKEN_KEY) || 'null');
   }
 
@@ -11,6 +11,12 @@ export class Token {
     const tokenObj: TokenObject = JSON.parse(localStorage.getItem(Token.TOKEN_KEY) || 'null');
 
     return tokenObj?.timestamp;
+  }
+
+  static getToken () {
+    const tokenObject = Token.getTokenObject();
+
+    return tokenObject ? tokenObject.token : null;
   }
 
   static setToken (token: TokenObject): void {

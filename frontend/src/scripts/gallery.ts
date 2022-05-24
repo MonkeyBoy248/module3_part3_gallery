@@ -26,7 +26,7 @@ const keyWordButton = document.querySelector('.header__key-word-button') as HTML
 const favoritesControls = document.querySelector('.gallery__favorite-controls') as HTMLElement;
 // const favoritesCounter = document.querySelector('.gallery__favorite-counter') as HTMLOutputElement;
 const saveFavoritesButton = document.querySelector('.gallery__save-favorites-button') as HTMLButtonElement;
-const favoritePictureIds: string[] = [];
+let favoritePictureIds: string[] = [];
 const galleryEventsArray: CustomEventListener[] = [
   {target: document, type: 'DOMContentLoaded', handler: setInitialInformation},
   {target: pagesLinksList, type: 'click', handler: changeCurrentPage},
@@ -36,7 +36,8 @@ const galleryEventsArray: CustomEventListener[] = [
   {target: setLimitButton, type: 'click', handler: setLimit},
   {target: filterCheckbox, type: 'change', handler: addFilterValueToURL},
   {target: headerLimitInput, type: 'input', handler: validateLimitValue},
-  {target: keyWordButton, type: 'click', handler: setKeyWordValueToURL}
+  {target: keyWordButton, type: 'click', handler: setKeyWordValueToURL},
+  {target: galleryPhotos, type: 'click', handler: addToFavorites}
 ]
 
 interface Metadata {
@@ -56,20 +57,20 @@ checkTokenValidity();
 
 async function getPicturesData (): Promise<void>{
   const url = setCurrentPageUrl();
-  const tokenObject = Token.getToken();
-  const tokenProperty = tokenObject?.token;
+  const token = Token.getToken();
+  const tokenObject = Token.getTokenObject();
 
   setPageNumber();
   setLimitPlaceholder();
   setCurrentCheckboxValue();
   favoritesControls.classList.add('_hidden');
 
-  if (tokenObject) {
+  if (token) {
     try {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          Authorization: tokenProperty,
+          Authorization: token,
         },
       })
 
@@ -136,25 +137,26 @@ function validateFileType (file: File) {
 
 async function retrieveUploadLink (file: File) {
   const url = env.uploadPictureServerUrl;
-  const tokenObject = Token.getToken();
-  const tokenProperty = tokenObject?.token;
+  const token = Token.getToken();
   const metadata = await getFileMetadata(file);
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': tokenProperty,
-      },
-      body: JSON.stringify(metadata)
-    })
+  if (token) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+        },
+        body: JSON.stringify(metadata)
+      })
 
-    const link = await response.json();
-    console.log('link', link);
+      const link = await response.json();
+      console.log('link', link);
 
-    return link;
-  } catch (err) {
-    console.log(err);
+      return link;
+    } catch (err) {
+      console.log(err);
+    }
   }
 }
 
@@ -191,28 +193,62 @@ async function sendUserPicture () {
 
 async function getUnsplashPictures () {
   const keyWordValue = env.currentUrl.searchParams.get('keyWord');
-  const url = `${env.unsplashServerUrl}?keyWord=${keyWordValue}`;
-  const tokenObject = Token.getToken();
-  const tokenProperty = tokenObject?.token;
+  const url = `${env.unsplashPicturesServerUrl}?keyWord=${keyWordValue}`;
+  const token = Token.getToken();
 
   filterCheckbox.disabled = true;
   setLimitPlaceholder();
   favoritesControls.classList.remove('_hidden');
 
-  try {
+  if (token) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': token
+        }
+      });
+
+      const pictures: UnsplashSearchResponse[] = await response.json();
+      console.log('pictures', pictures);
+
+      setEmptyResponseMessage(pictures, 'Nothing found');
+      createPictureTemplate(pictures);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+}
+
+async function sendFavoriteIds () {
+  const url = env.unsplashFavoritesUrl;
+  const token = Token.getToken();
+  const favoriteIds = {
+    ids: favoritePictureIds,
+  };
+
+  if (token) {
     const response = await fetch(url, {
+      method: 'post',
       headers: {
-        Authorization: tokenProperty
-      }
-    });
+        'Authorization': token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(favoriteIds),
+    })
+    const result = await response.json();
+    resetFavorites();
 
-    const pictures: UnsplashSearchResponse[] = await response.json();
-    console.log('pictures', pictures);
+    console.log('Success', result);
+  }
+}
 
-    setEmptyResponseMessage(pictures, 'Nothing found');
-    createPictureTemplate(pictures);
-  } catch (err) {
-    console.log(err);
+function resetFavorites () {
+  favoritePictureIds = [];
+  setFavoritesCounterValue();
+  const likedPictures = [...galleryPhotos.querySelectorAll('.liked')]
+
+  for (let picture of likedPictures) {
+    picture.classList.remove('liked');
   }
 }
 
@@ -229,7 +265,7 @@ function styleUploadingButton (value: string, disabled: boolean, clear: boolean)
   gallerySubmitButton.classList.remove('processing');
 }
 
-async function getFileMetadata (file: File) {
+async function getFileMetadata (file: File): Promise<Metadata> {
   const { name } = file;
   const extension = file.type
   const size = file.size;
@@ -242,7 +278,7 @@ async function getFileMetadata (file: File) {
     extension,
     size,
     dimensions
-  } as Metadata;
+  };
 }
 
 async function getPictureParams (file: File) {
@@ -262,10 +298,9 @@ async function getPictureParams (file: File) {
 }
 
 function getUserEmail () {
-  const tokenObject = Token.getToken();
+  const token = Token.getToken();
 
-  if (tokenObject) {
-    const token = tokenObject.token;
+  if (token) {
     const tokenPayload = token.split('.')[1];
     const userEmail = atob(tokenPayload).match(/\w+@\w+\.\w+/g);
 
@@ -425,7 +460,7 @@ function redirectWhenTokenExpires (delay: number): void {
   const filter = env.currentUrl.searchParams.get('filter') || 'false';
   const keyWord = env.currentUrl.searchParams.get('keyWord') || '';
 
-  if (!Token.getToken()) {
+  if (!Token.getTokenObject()) {
     ListenerRemover.removeEventListeners(galleryEventsArray);
     updateMessageBeforeRedirection(delay / 1000);
     setTimeout(() => {
@@ -601,6 +636,7 @@ headerLimitInput.addEventListener('input', validateLimitValue);
 filterCheckbox.addEventListener('change', addFilterValueToURL);
 keyWordButton.addEventListener('click', setKeyWordValueToURL);
 galleryPhotos.addEventListener('click', addToFavorites);
+saveFavoritesButton.addEventListener('click', sendFavoriteIds);
 
 
 
