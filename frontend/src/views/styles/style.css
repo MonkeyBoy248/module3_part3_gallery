@@ -242,6 +242,14 @@ body {
   position: relative;
 }
 
+.gallery__save-favorites-button {
+  width: 200px;
+}
+
+._hidden {
+  display: none;
+}
+
 .gallery__empty-message {
   font-size: 28px;
   color: #ffffff;

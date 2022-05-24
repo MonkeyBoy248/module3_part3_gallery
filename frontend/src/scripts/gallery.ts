@@ -23,6 +23,9 @@ const filterCheckbox = document.querySelector('.header__filter-checkbox') as HTM
 const currentUserEmailOutput = document.querySelector('.header__current-user-email') as HTMLOutputElement;
 const keyWordInput = document.querySelector('.header__key-word-input') as HTMLInputElement;
 const keyWordButton = document.querySelector('.header__key-word-button') as HTMLButtonElement;
+const favoritesControls = document.querySelector('.gallery__favorite-controls') as HTMLElement;
+// const favoritesCounter = document.querySelector('.gallery__favorite-counter') as HTMLOutputElement;
+const saveFavoritesButton = document.querySelector('.gallery__save-favorites-button') as HTMLButtonElement;
 const favoritePictureIds: string[] = [];
 const galleryEventsArray: CustomEventListener[] = [
   {target: document, type: 'DOMContentLoaded', handler: setInitialInformation},
@@ -59,6 +62,7 @@ async function getPicturesData (): Promise<void>{
   setPageNumber();
   setLimitPlaceholder();
   setCurrentCheckboxValue();
+  favoritesControls.classList.add('_hidden');
 
   if (tokenObject) {
     try {
@@ -193,6 +197,7 @@ async function getUnsplashPictures () {
 
   filterCheckbox.disabled = true;
   setLimitPlaceholder();
+  favoritesControls.classList.remove('_hidden');
 
   try {
     const response = await fetch(url, {
@@ -539,6 +544,7 @@ function displayUserEmail () {
 async function setInitialInformation () {
   displayUserEmail();
   setKeyWordInputValue();
+  setFavoritesCounterValue();
 
   const currentKeyWordValue = env.currentUrl.searchParams.get('keyWord')
 
@@ -557,6 +563,7 @@ function getClickedPictureId (target: HTMLElement, id: string) {
 
     target.classList.remove('liked');
     favoritePictureIds.splice(pictureIndex);
+    setFavoritesCounterValue();
     console.log('deleted');
 
     return;
@@ -564,10 +571,15 @@ function getClickedPictureId (target: HTMLElement, id: string) {
 
   favoritePictureIds.push(id);
   target.classList.add('liked');
+  setFavoritesCounterValue();
 
   console.log(favoritePictureIds);
 
   return favoritePictureIds;
+}
+
+function setFavoritesCounterValue () {
+  saveFavoritesButton.textContent = `Save favorites (selected: ${favoritePictureIds.length})`;
 }
 
 function addToFavorites (e: Event) {
