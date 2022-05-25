@@ -5,12 +5,14 @@ import {S3Service} from "@services/S3.service";
 import {getEnv} from "@helper/environment";
 import {v4 as uuidv4} from "uuid";
 import {werePicturesUploadedByASingleUser} from "@helper/checkDuplicates";
+import {CropService} from "@services/crop.service";
 
 export type OriginInfo = Pick<PictureResponse, 'email' | 'name'>;
 
 export class GalleryService {
   private dbPicturesService = new DynamoDBPicturesService();
   private s3Service = new S3Service();
+  private cropService = new CropService();
   private picturesBucketName = getEnv('BUCKET_NAME');
 
   validateAndConvertParams = async (page: string, limit: string, filter: string, email: string) => {
@@ -103,15 +105,38 @@ export class GalleryService {
     return this.s3Service.getPreSignedPutUrl(`${email}/${pictureId}`, this.picturesBucketName, metadata.extension);
   }
 
-  // uploadDefaultPictures = async () => {
-  //   try {
-  //     await mongoConnectionService.connectDB();
-  //
-  //     await this.dbPicturesService.savePicturesToTheDB();
-  //
-  //     return { message: 'Default pictures were added' };
-  //   } catch (err) {
-  //     throw new HttpInternalServerError('Failed to upload default images')
-  //   }
-  // }
+  getCroppedPictureBody = async (pictureKey: string): Promise<Buffer> => {
+    console.log('picture key in service', pictureKey);
+    const uploadedFullSizeImage = await this.s3Service.get(pictureKey, this.picturesBucketName);
+
+    const uploadedPictureBody = uploadedFullSizeImage.Body as Buffer;
+
+    return this.cropService.cropImage(uploadedPictureBody);
+  }
+
+  getCroppedPictureS3Key = async (pictureKey: string) => {
+    const pictureIdWithNoExtension = pictureKey.split('/').pop()?.split('.')[0];
+    const pictureExtension = pictureKey.split('.').pop();
+    const email = pictureKey.split('/')[0];
+    console.log('email in service', email);
+    const croppedPictureS3Key = `${email}/${pictureIdWithNoExtension}_SC.${pictureExtension}`;
+
+    return croppedPictureS3Key;
+  }
+
+  getPictureId = (pictureKey: string) => {
+    const pictureId = pictureKey.split('/').pop()!;
+
+    return pictureId;
+  }
+
+  uploadCropImage = async (croppedPicture: Buffer, pictureId: string, cropKey: string) => {
+    const email = cropKey.split('/')[0].replace('%40', '@');
+
+    console.log('crop params', email, pictureId, cropKey);
+
+    await this.s3Service.put(cropKey, croppedPicture, this.picturesBucketName);
+
+    await this.dbPicturesService.updateSubClipCreatedValue(email, pictureId!);
+  }
 }

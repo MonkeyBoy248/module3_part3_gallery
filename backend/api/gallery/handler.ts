@@ -1,8 +1,7 @@
 import { errorHandler } from '@helper/http-api/error-handler';
 import { createResponse } from '@helper/http-api/response';
-import {APIGatewayProxyHandler, S3Event, S3Handler} from "aws-lambda";
+import {APIGatewayProxyHandler, S3Handler} from "aws-lambda";
 import { GalleryManager } from "./gallery.manager";
-import {eventNames} from "cluster";
 
 const manager = new GalleryManager();
 
@@ -39,9 +38,13 @@ export const uploadPicture: APIGatewayProxyHandler = async (event, context) => {
 }
 
 export const s3Uploading: S3Handler = async (event, context) => {
-  const pictureKey = event.Records[0].s3.object.key;
+  try {
+    const pictureKey = event.Records[0].s3.object.key;
 
-  console.log('Trigger works', pictureKey);
+    await manager.uploadCropImage(pictureKey);
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 

@@ -19,3 +19,14 @@ export interface PictureMetadata {
     height: number
   }
 }
+
+export interface S3PictureMetadata {
+  s3PictureBody: Buffer,
+  s3PictureMime: string
+}
+
+export interface S3CropMetadata {
+  cropImage: Buffer,
+  pictureId: string,
+  cropKey: string
+}
