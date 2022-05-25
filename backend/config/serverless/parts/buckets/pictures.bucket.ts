@@ -17,20 +17,21 @@ export const picturesBucket: AWSPartitial = {
       },
     },
   },
-  // functions: {
-  //   triggerS3Example: {
-  //     handler: 'api/gallery/handler.uploadPictureToS3',
-  //     timeout: 28,
-  //     events: [
-  //       {
-  //         s3: {
-  //           bucket: '${file(env.yml):${self:provider.stage}.BUCKET_NAME}',
-  //           event: 's3:ObjectCreated:*',
-  //         },
-  //       },
-  //     ],
-  //   },
-  // },
+  functions: {
+    triggerS3PictureUploading: {
+      handler: 'api/gallery/handler.s3Uploading',
+      timeout: 30,
+      events: [
+        {
+          s3: {
+            bucket: '${file(env.yml):${self:provider.stage}.BUCKET_NAME}',
+            event: 's3:ObjectCreated:*',
+            existing: true
+          },
+        },
+      ],
+    },
+  },
   resources: {
     Resources: {
       MyBucket: {
