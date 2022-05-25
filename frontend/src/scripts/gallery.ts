@@ -58,9 +58,7 @@ checkTokenValidity();
 async function getPicturesData (): Promise<void>{
   const url = setCurrentPageUrl();
   const token = Token.getToken();
-  const tokenObject = Token.getTokenObject();
 
-  setPageNumber();
   setLimitPlaceholder();
   setCurrentCheckboxValue();
   favoritesControls.classList.add('_hidden');
@@ -92,6 +90,7 @@ async function getPicturesData (): Promise<void>{
 
       createPictureTemplate(data.objects);
       createLinksTemplate(data.total);
+      setPageNumber();
     } catch (err){
         if (err instanceof InvalidPageError) {
           const nonexistentPageNumber = new URL(url).searchParams.get('page');
