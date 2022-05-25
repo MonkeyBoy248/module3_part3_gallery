@@ -6,3 +6,13 @@ export interface UnsplashSearchResponse {
 export interface FavoriteIds {
   ids: string[];
 }
+
+export interface UnsplashPictureMetadata {
+  buff?: Buffer,
+  type?: string,
+  size?: number,
+  location: string;
+  width: number,
+  height: number,
+  downloadUrl?: string
+}

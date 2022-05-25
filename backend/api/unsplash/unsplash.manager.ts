@@ -1,6 +1,9 @@
 import {UnsplashService} from "./unsplash.service";
 import {HttpBadRequestError} from "@floteam/errors";
 import {FavoriteIds} from "./unsplash.interface";
+import {S3Service} from "@services/S3.service";
+import {DynamoDBPicturesService} from "@models/DynamoDB/services/dynamoDBPictures.service";
+import {PictureMetadataService} from "@services/pictureMetadataService";
 
 export class UnsplashManager {
   private readonly service: UnsplashService;
@@ -16,18 +19,17 @@ export class UnsplashManager {
 
     console.log('query', queryString);
 
-    return this.service.getPicturesByAKeyWord(queryString);
+    return this.service.getUnsplashPicturesByAKeyWord(queryString);
   }
 
-  getFavoritesUploadLinks = async (id: string | undefined | null) => {
+  uploadFavoritePictures = async (id: string | undefined | null, email: string, metadataService: PictureMetadataService, pictureDBService: DynamoDBPicturesService, s3Service: S3Service) => {
     if (!id) {
       throw new HttpBadRequestError('No ids was provided');
     }
 
     const pictureIDArray: FavoriteIds = JSON.parse(id);
+    const favoritesMetadata = await this.service.getUnsplashFavoritesMetadata(pictureIDArray.ids);
 
-    console.log('ids object', pictureIDArray.ids);
-
-    return this.service.getFavoritesUploadLinks(pictureIDArray.ids);
+    return this.service.saveUnsplashFavoritesToS3AndDynamoDB(favoritesMetadata, email, metadataService, pictureDBService, s3Service);
   }
 }

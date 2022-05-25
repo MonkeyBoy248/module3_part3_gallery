@@ -16,7 +16,7 @@ export const getUnsplashPictures =  {
 };
 
 export const uploadFavoritePictures =  {
-  handler: 'api/unsplash/handler.getFavoritesUploadLinks',
+  handler: 'api/unsplash/handler.uploadFavoritePictures',
   timeout: 30,
   memorySize: 128,
   events: [

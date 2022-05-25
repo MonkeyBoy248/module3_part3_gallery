@@ -2,6 +2,8 @@ import { S3 } from 'aws-sdk';
 import {getEnv} from "@helper/environment";
 import { PutObjectRequest } from 'aws-sdk/clients/s3';
 
+type PictureFormat = string | Buffer;
+
 export class S3Service {
   public s3 = new S3();
   private putExpirationTime = 60 * Number(getEnv('PUT_EXPIRATION_TIME'));
@@ -27,7 +29,7 @@ export class S3Service {
     return this.s3.getSignedUrl('getObject', params);
   }
 
-  public put = (key: string, body: string, bucket: string, acl = 'public-read') => {
+  public put = (key: string, body: PictureFormat, bucket: string, acl = 'public-read') => {
     const params: PutObjectRequest = {
       ACL: acl,
       Bucket: bucket,

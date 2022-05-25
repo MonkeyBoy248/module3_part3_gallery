@@ -111,6 +111,7 @@
     "axios": "^0.24.0",
     "dotenv": "16.0.0",
     "dynamoose": "^2.8.3",
+    "image-type": "4.1.0",
     "jsonwebtoken": "8.5.1",
     "lambda-multipart-parser": "1.0.1",
     "mongoose": "6.3.0",
