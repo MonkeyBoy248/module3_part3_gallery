@@ -1,14 +1,14 @@
 import {DynamoDBService} from "@models/DynamoDB/services/dynamoDB.service";
 import {createKeyTemplate} from "@helper/keyTemplate";
 import {getEnv} from "@helper/environment";
-import {PictureMetadata} from "../../../api/gallery/gallery.service";
+import {PictureMetadata} from "../../../api/gallery/gallery.interface";
 
 export interface PictureResponse {
   partitionKey: string,
   sortKey: string,
   name: string,
   email: string,
-  metadata: any;
+  metadata: PictureMetadata;
   dateOfUploading: string;
   status: string;
 }

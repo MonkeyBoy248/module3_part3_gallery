@@ -1,20 +1,10 @@
 import {DynamoDBPicturesService, PictureResponse} from "@models/DynamoDB/services/dynamoDBPictures.service";
-import { GalleryObject, QueryObject } from "./gallery.interface";
+import {GalleryObject, PictureMetadata, QueryObject} from "./gallery.interface";
 import {HttpBadRequestError, HttpInternalServerError} from "@floteam/errors";
 import {S3Service} from "@services/S3.service";
 import {getEnv} from "@helper/environment";
 import {v4 as uuidv4} from "uuid";
 import {werePicturesUploadedByASingleUser} from "@helper/checkDuplicates";
-
-export interface PictureMetadata {
-  name: string,
-  extension: string,
-  size: number;
-  dimensions: {
-    width: number,
-    height: number
-  }
-}
 
 export type OriginInfo = Pick<PictureResponse, 'email' | 'name'>;
 

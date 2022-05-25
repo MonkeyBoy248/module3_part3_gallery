@@ -9,3 +9,13 @@ export interface QueryObject {
   limit: number,
   filter: boolean,
 }
+
+export interface PictureMetadata {
+  name: string,
+  extension: string,
+  size: number;
+  dimensions: {
+    width: number,
+    height: number
+  }
+}
