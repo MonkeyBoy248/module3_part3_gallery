@@ -586,7 +586,7 @@ function getClickedPictureId (target: HTMLElement, id: string) {
     const pictureIndex = favoritePictureIds.indexOf(id);
 
     target.classList.remove('liked');
-    favoritePictureIds.splice(pictureIndex);
+    favoritePictureIds.splice(pictureIndex, 1);
     setFavoritesCounterValue();
     console.log('deleted');
 
@@ -616,9 +616,11 @@ function addToFavorites (e: Event) {
 }
 
 async function showGallery () {
+  favoritesControls.classList.add('_hidden');
   setLimitPlaceholder();
   setCurrentCheckboxValue();
   backToUploadedButton.disabled = true;
+  filterCheckbox.disabled = false;
 
   const token = Token.getToken();
 
