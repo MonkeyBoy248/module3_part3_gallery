@@ -5,11 +5,6 @@ import { AlreadyExistsError, HttpBadRequestError, HttpUnauthorizedError } from "
 import {DynamoDBUserService} from "@models/DynamoDB/services/dynamoDBUser.service";
 
 export class AuthService {
-  private readonly dbUserService = new DynamoDBUserService();
-  private readonly jwtService = new JwtService();
-  private readonly hashService = new HashPasswordService();
-
-
   validateUserData = (data: string) => {
     const userData = JSON.parse(data);
 
@@ -29,38 +24,36 @@ export class AuthService {
     return userObject;
   }
 
-  signUp = async (userData: RequestUser) => {
+  signUp = async (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService) => {
     try {
-      await this.dbUserService.createUserObjectInDB(userData.email, userData.password);
-      const token = await this.logIn(userData);
+      await dbUserService.createUserObjectInDB(userData.email, userData.password);
+      const token = jwtService.createToken(userData.email);
 
-      return {token}
+      return token
     } catch (err) {
       throw new AlreadyExistsError(`User with this email already exists, ${err}`)
     }
   }
 
-  logIn = async (userData: RequestUser) => {
+  logIn = async (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService) => {
+    const contender = await dbUserService.getUserByEmail(userData.email);
+
+    if (!contender) {
+      throw new HttpUnauthorizedError('User does not exist');
+    }
+
     try {
-      const contender = await this.dbUserService.getUserByEmail(userData.email);
-      console.log('candidate', contender);
+      await hashService.comparePasswords(contender?.password.hash, contender.password.salt, userData.password);
 
-      if (!contender) {
-        throw new HttpBadRequestError('User does not exist');
-      }
-
-      await this.hashService.comparePasswords(contender?.password.hash, contender.password.salt, userData.password);
-
-      return this.jwtService.createToken(contender.email);
+      return jwtService.createToken(contender.email);
     } catch (err) {
-      throw new HttpUnauthorizedError('Wrong user data');
+      throw new HttpUnauthorizedError('Invalid user data');
     }
   }
 
-  authenticate = async (token: string) => {
+  authenticate = async (token: string, jwtService: JwtService) => {
     try {
-
-      return this.jwtService.verifyToken(token);
+      return jwtService.verifyToken(token);
     } catch (err) {
       throw new HttpUnauthorizedError('Invalid token');
     }

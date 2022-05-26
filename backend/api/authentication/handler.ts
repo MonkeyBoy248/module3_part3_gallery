@@ -6,16 +6,20 @@ import {
 import { AuthManager } from "./auth.manager";
 import { APIGatewayAuthorizerSimpleResult, APIGatewayRequestAuthorizerHttpApiPayloadV2Event } from "@interfaces/api-gateway-authorizer.interface";
 import {JwtPayload} from "jsonwebtoken";
+import {DynamoDBUserService} from "@models/DynamoDB/services/dynamoDBUser.service";
+import {JwtService} from "@services/jwt.service";
+import {HashPasswordService} from "@services/hashPassword.service";
 
 const manager = new AuthManager();
 
 export const signUp: APIGatewayProxyHandlerV2 = async (event, context) => {
-  console.log(event);
-
   try {
     const user = event.body!;
+    const dbUserService = new DynamoDBUserService();
+    const jwtService = new JwtService();
+    const hashService = new HashPasswordService();
 
-    const response = await manager.signUp(user);
+    const response = await manager.signUp(user, dbUserService, hashService, jwtService);
 
     return createResponse(200, response);
   } catch (err) {
@@ -24,11 +28,13 @@ export const signUp: APIGatewayProxyHandlerV2 = async (event, context) => {
 }
 
 export const logIn: APIGatewayProxyHandlerV2 = async (event, context) => {
-  console.log(event);
-
   try {
     const user = event.body!
-    const token = await manager.logIn(user);
+    const dbUserService = new DynamoDBUserService();
+    const jwtService = new JwtService();
+    const hashService = new HashPasswordService();
+
+    const token = await manager.logIn(user, dbUserService, hashService, jwtService);
 
     return createResponse(200, { token });
   } catch (err) {
@@ -53,14 +59,13 @@ export const authenticate: Handler<
   APIGatewayRequestAuthorizerHttpApiPayloadV2Event,
   APIGatewayAuthorizerSimpleResult
   > = async (event, context) => {
-  console.log(event);
-
   try {
     const token = event.identitySource?.[0]
+    const jwtService = new JwtService();
 
     console.log('token', token);
 
-    const user = await manager.authenticate(token!) as JwtPayload;
+    const user = await manager.authenticate(token!, jwtService) as JwtPayload;
 
     return generateSimpleResponse(true, {email: user.email});
   } catch (err) {
