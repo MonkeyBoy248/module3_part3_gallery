@@ -4,6 +4,12 @@ export interface GalleryObject {
   total: number;
 }
 
+export interface RawQueryParams {
+  page: string,
+  limit: string,
+  filter: string,
+}
+
 export interface QueryObject {
   page: number,
   limit: number,

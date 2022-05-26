@@ -20,7 +20,8 @@ export const picturesBucket: AWSPartitial = {
   functions: {
     triggerS3PictureUploading: {
       handler: 'api/gallery/handler.s3Uploading',
-      timeout: 30,
+      timeout: 40,
+      memorySize: 1024,
       events: [
         {
           s3: {

@@ -1,6 +1,6 @@
-import {OriginInfo} from "../api/gallery/gallery.service";
+import {PictureOwner} from "../api/gallery/gallery.service";
 
-export const werePicturesUploadedByASingleUser = (picturesInfo: OriginInfo[], key: string) => {
+export const werePicturesUploadedByASingleUser = (picturesInfo: PictureOwner[], key: string) => {
   const keyArray = picturesInfo.map((item) => {
     return item[key];
   })
