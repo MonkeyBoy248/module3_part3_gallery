@@ -1,4 +1,5 @@
 import {TokenObject} from "./interfaces.js";
+import {TokenError} from "./errors.js";
 
 export class Token {
   private static TOKEN_KEY: string = 'token';
@@ -20,8 +21,12 @@ export class Token {
   }
 
   static setToken (token: TokenObject): void {
-    token.timestamp = Date.now();
-    localStorage.setItem(Token.TOKEN_KEY, JSON.stringify(token));
+    try {
+      token.timestamp = Date.now();
+      localStorage.setItem(Token.TOKEN_KEY, JSON.stringify(token));
+    } catch (err) {
+      throw new TokenError('Invalid token response');
+    }
   }
 
   static deleteToken (): void {

@@ -27,9 +27,11 @@ export class AuthService {
   signUp = async (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService) => {
     try {
       await dbUserService.createUserObjectInDB(userData.email, userData.password);
-      const token = jwtService.createToken(userData.email);
+      const token = await jwtService.createToken(userData.email);
 
-      return token
+      console.log('token', token);
+
+      return {token}
     } catch (err) {
       throw new AlreadyExistsError(`User with this email already exists, ${err}`)
     }

@@ -72,7 +72,7 @@ async function sendSignUpRequest () {
   const user = getFormData();
 
   if (!user.email || !user.password) {
-    throw new InvalidUserDataError('Fields are empty');
+    throw new InvalidUserDataError('Some fields are empty');
   }
 
   const response = await fetch(url, {
@@ -134,8 +134,9 @@ async function signUp () {
     await sendSignUpRequest();
   } catch (err) {
     const error = err as Error;
+    console.log(error.message)
 
-    setErrorMessage(error.message);
+    setErrorMessage('Failed to sign up');
   }
 }
 
