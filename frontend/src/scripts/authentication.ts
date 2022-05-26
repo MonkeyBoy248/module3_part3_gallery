@@ -136,9 +136,6 @@ async function submitForm(e: Event) {
 
 function setErrorMessage (text: string) {
   submitErrorContainer!.textContent = `${text}`;
-
-  emailInput.value = '';
-  passwordInput.value = '';
 }
 
 function resetErrorMessage() {
