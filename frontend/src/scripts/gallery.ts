@@ -38,7 +38,7 @@ const galleryEventsArray: CustomEventListener[] = [
   {target: headerLimitInput, type: 'input', handler: validateLimitValue},
   {target: keyWordButton, type: 'click', handler: setKeyWordValueToURL},
   {target: galleryPhotos, type: 'click', handler: addToFavorites},
-  {target: saveFavoritesButton, type: 'click', handler: addToFavorites},
+  {target: saveFavoritesButton, type: 'click', handler: uploadFavorites},
   {target: backToUploadedButton, type: 'click', handler: showGallery}
 ]
 
@@ -59,10 +59,6 @@ checkTokenValidity();
 
 async function getPictures (token: string) {
   const url = setCurrentPageUrl();
-
-  setLimitPlaceholder();
-  setCurrentCheckboxValue();
-  favoritesControls.classList.add('_hidden');
 
     const response = await fetch(url, {
       method: 'GET',
@@ -142,57 +138,55 @@ async function sendUserPicture () {
     return false;
   }
 
-  try {
-    styleUploadingButton('Processing', true, false);
+  styleUploadingButton('Processing', true, false);
 
-    const response = await fetch(url, {
-      method: 'PUT',
-      body: file
-    })
+  const response = await fetch(url, {
+    method: 'PUT',
+    body: file
+  })
 
-    styleUploadingButton('Upload file', false, true);
+  styleUploadingButton('Upload file', false, true);
 
-    const responseStatus = response.status;
+  const responseStatus = response.status;
 
-    if (responseStatus === 500) {
-      throw new PicturesUploadError();
-    }
-
-    await showGallery();
-
-  } catch (err) {
-    console.log(err);
+  if (responseStatus === 500) {
+    throw new PicturesUploadError();
   }
 }
 
-async function getUnsplashPictures () {
-  checkTokenValidity();
-
+async function getUnsplashPictures (token: string) {
   const keyWordValue = env.currentUrl.searchParams.get('keyWord');
   const url = `${env.unsplashPicturesServerUrl}?keyWord=${keyWordValue}`;
-  const token = Token.getToken();
 
-  filterCheckbox.disabled = true;
-  setLimitPlaceholder();
-  favoritesControls.classList.remove('_hidden');
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': token
+    }
+  });
 
-  if (token) {
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': token
-        }
-      });
+  const pictures: UnsplashSearchResponse[] = await response.json();
 
-      const pictures: UnsplashSearchResponse[] = await response.json();
-      console.log('pictures', pictures);
+  return pictures;
+}
+
+async function showUnsplashPictures () {
+  try {
+    checkTokenValidity();
+    filterCheckbox.disabled = true;
+    setLimitPlaceholder();
+
+    const token = Token.getToken();
+
+    if (token) {
+      const pictures = await getUnsplashPictures(token);
 
       setEmptyResponseMessage(pictures, 'Nothing found');
       backToUploadedButton.disabled = false;
       createPictureTemplate(pictures);
-    } catch (err) {
-      console.log(err);
+      favoritesControls.classList.remove('_hidden');
     }
+  } catch (err) {
+    console.log('unsplash err', err)
   }
 }
 
@@ -213,9 +207,19 @@ async function sendFavoriteIds () {
       body: JSON.stringify(favoriteIds),
     })
     const result = await response.json();
-    resetFavorites();
+
 
     console.log('Success', result);
+  }
+}
+
+async function uploadFavorites () {
+  try {
+    await sendFavoriteIds();
+
+    resetFavorites();
+  } catch (err) {
+    console.log('error', err);
   }
 }
 
@@ -362,6 +366,11 @@ function createErrorMessageTemplate (message: string, errType: string, targetPag
 }
 
 async function uploadUserFile (e: Event) {
+  try {
+
+  } catch (err) {
+    console.log('uploading error', err);
+  }
   e.preventDefault();
   const selectedFiles = galleryUploadInput.files;
 
@@ -370,7 +379,10 @@ async function uploadUserFile (e: Event) {
     return false;
   }
 
+  styleUploadingButton('Processing', true, false);
   await sendUserPicture();
+  styleUploadingButton('Upload file', false, true);
+  await showGallery();
 
   headerFilesContainer.innerHTML = '';
 }
@@ -561,7 +573,7 @@ async function setInitialInformation () {
   const currentKeyWordValue = env.currentUrl.searchParams.get('keyWord')
 
   if (currentKeyWordValue) {
-    await getUnsplashPictures();
+    await showUnsplashPictures();
 
     return;
   }
@@ -604,14 +616,17 @@ function addToFavorites (e: Event) {
 }
 
 async function showGallery () {
+  setLimitPlaceholder();
+  setCurrentCheckboxValue();
+  backToUploadedButton.disabled = true;
+
   const token = Token.getToken();
 
   if (token) {
     try {
       const pictures = await getPictures(token);
-      setEmptyResponseMessage(pictures.objects, 'No pictures uploaded');
-      backToUploadedButton.disabled = true;
 
+      setEmptyResponseMessage(pictures.objects, 'No pictures uploaded');
       createPictureTemplate(pictures.objects);
       createLinksTemplate(pictures.total);
       setPageNumber();
@@ -646,7 +661,7 @@ headerLimitInput.addEventListener('input', validateLimitValue);
 filterCheckbox.addEventListener('change', addFilterValueToURL);
 keyWordButton.addEventListener('click', setKeyWordValueToURL);
 galleryPhotos.addEventListener('click', addToFavorites);
-saveFavoritesButton.addEventListener('click', sendFavoriteIds);
+saveFavoritesButton.addEventListener('click', uploadFavorites);
 backToUploadedButton.addEventListener('click', showGallery);
 
 
