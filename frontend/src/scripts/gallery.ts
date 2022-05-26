@@ -24,8 +24,8 @@ const currentUserEmailOutput = document.querySelector('.header__current-user-ema
 const keyWordInput = document.querySelector('.header__key-word-input') as HTMLInputElement;
 const keyWordButton = document.querySelector('.header__key-word-button') as HTMLButtonElement;
 const favoritesControls = document.querySelector('.gallery__favorite-controls') as HTMLElement;
-// const favoritesCounter = document.querySelector('.gallery__favorite-counter') as HTMLOutputElement;
 const saveFavoritesButton = document.querySelector('.gallery__save-favorites-button') as HTMLButtonElement;
+const backToUploadedButton = document.querySelector('.header__back-to-user-pictures') as HTMLButtonElement;
 let favoritePictureIds: string[] = [];
 const galleryEventsArray: CustomEventListener[] = [
   {target: document, type: 'DOMContentLoaded', handler: setInitialInformation},
@@ -37,7 +37,9 @@ const galleryEventsArray: CustomEventListener[] = [
   {target: filterCheckbox, type: 'change', handler: addFilterValueToURL},
   {target: headerLimitInput, type: 'input', handler: validateLimitValue},
   {target: keyWordButton, type: 'click', handler: setKeyWordValueToURL},
-  {target: galleryPhotos, type: 'click', handler: addToFavorites}
+  {target: galleryPhotos, type: 'click', handler: addToFavorites},
+  {target: saveFavoritesButton, type: 'click', handler: addToFavorites},
+  {target: backToUploadedButton, type: 'click', handler: showGallery}
 ]
 
 interface Metadata {
@@ -55,22 +57,19 @@ interface PictureDimensions extends Pick<Metadata, 'dimensions'>{}
 
 checkTokenValidity();
 
-async function getPicturesData (): Promise<void>{
+async function getPictures (token: string) {
   const url = setCurrentPageUrl();
-  const token = Token.getToken();
 
   setLimitPlaceholder();
   setCurrentCheckboxValue();
   favoritesControls.classList.add('_hidden');
 
-  if (token) {
-    try {
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          Authorization: token,
-        },
-      })
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: token,
+      },
+    })
 
       console.log(response.status);
 
@@ -84,32 +83,7 @@ async function getPicturesData (): Promise<void>{
       }
       const data: GalleryData = await response.json();
 
-      console.log('data', data);
-
-      setEmptyResponseMessage(data.objects, 'No pictures uploaded');
-
-      createPictureTemplate(data.objects);
-      createLinksTemplate(data.total);
-      setPageNumber();
-    } catch (err){
-        if (err instanceof InvalidPageError) {
-          const nonexistentPageNumber = new URL(url).searchParams.get('page');
-
-          createErrorMessageTemplate(
-            `There is no page with number ${nonexistentPageNumber}.`,
-            'wrong-page-number',
-            'page 1'
-          )
-        } else {
-          createErrorMessageTemplate(
-            'Invalid token. Please, log in',
-            'invalid-token',
-            'authentication page');
-        }
-
-        console.log(err);
-    }
-  }
+      return data;
 }
 
 function setEmptyResponseMessage (data: string[] | UnsplashSearchResponse[], message: string) {
@@ -126,6 +100,7 @@ function setEmptyResponseMessage (data: string[] | UnsplashSearchResponse[], mes
     noPicturesMessage.className = 'gallery__empty-message';
     noPicturesMessage.textContent = message;
 
+    saveFavoritesButton.classList.add('_hidden');
     galleryInner.append(noPicturesMessage);
   }
 }
@@ -183,7 +158,7 @@ async function sendUserPicture () {
       throw new PicturesUploadError();
     }
 
-    await getPicturesData();
+    await showGallery();
 
   } catch (err) {
     console.log(err);
@@ -191,6 +166,8 @@ async function sendUserPicture () {
 }
 
 async function getUnsplashPictures () {
+  checkTokenValidity();
+
   const keyWordValue = env.currentUrl.searchParams.get('keyWord');
   const url = `${env.unsplashPicturesServerUrl}?keyWord=${keyWordValue}`;
   const token = Token.getToken();
@@ -211,6 +188,7 @@ async function getUnsplashPictures () {
       console.log('pictures', pictures);
 
       setEmptyResponseMessage(pictures, 'Nothing found');
+      backToUploadedButton.disabled = false;
       createPictureTemplate(pictures);
     } catch (err) {
       console.log(err);
@@ -536,7 +514,7 @@ async function changeCurrentPage (e: Event): Promise<void> {
     if (currentActiveLink !== targetClosestLi) {
       env.currentUrl.searchParams.set('page', targetClosestLi?.getAttribute('page-number')!)
       setNewUrl();
-      await getPicturesData();
+      await showGallery();
 
       currentActiveLink?.classList.remove('active');
       target.classList.add('active');
@@ -588,7 +566,7 @@ async function setInitialInformation () {
     return;
   }
 
-  await getPicturesData();
+  await showGallery();
 }
 
 function getClickedPictureId (target: HTMLElement, id: string) {
@@ -625,6 +603,39 @@ function addToFavorites (e: Event) {
   }
 }
 
+async function showGallery () {
+  const token = Token.getToken();
+
+  if (token) {
+    try {
+      const pictures = await getPictures(token);
+      setEmptyResponseMessage(pictures.objects, 'No pictures uploaded');
+      backToUploadedButton.disabled = true;
+
+      createPictureTemplate(pictures.objects);
+      createLinksTemplate(pictures.total);
+      setPageNumber();
+    } catch (err) {
+      if (err instanceof InvalidPageError) {
+        const nonexistentPageNumber = new URL(env.currentUrl).searchParams.get('page');
+
+        createErrorMessageTemplate(
+          `There is no page with number ${nonexistentPageNumber}.`,
+          'wrong-page-number',
+          'page 1'
+        )
+      } else {
+        createErrorMessageTemplate(
+          'Invalid token. Please, log in',
+          'invalid-token',
+          'authentication page');
+      }
+
+      console.log(err);
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', setInitialInformation);
 pagesLinksList.addEventListener('click', changeCurrentPage);
 galleryErrorContainer.addEventListener('click', redirectToTheTargetPage);
@@ -636,6 +647,7 @@ filterCheckbox.addEventListener('change', addFilterValueToURL);
 keyWordButton.addEventListener('click', setKeyWordValueToURL);
 galleryPhotos.addEventListener('click', addToFavorites);
 saveFavoritesButton.addEventListener('click', sendFavoriteIds);
+backToUploadedButton.addEventListener('click', showGallery);
 
 
 
