@@ -7,16 +7,16 @@ import {S3Service} from "@services/S3.service";
 import {CropService} from "@services/crop.service";
 import {RawQueryParams} from "./gallery.interface";
 
-const manager = new GalleryManager();
-
 export const getPictures: APIGatewayProxyHandler = async (event, context) => {
   try {
+    const manager = new GalleryManager();
+
     const email = event.requestContext.authorizer?.lambda.email;
     const queryObject = event.queryStringParameters;
     const rawQueryParams: RawQueryParams = {
-      page: queryObject?.page ?? '1',
-      limit: queryObject?.limit ?? '4',
-      filter: queryObject?.filter ?? 'false'
+      page: queryObject?.page!,
+      limit: queryObject?.limit!,
+      filter: queryObject?.filter!
     }
     const dbPicturesService = new DynamoDBPicturesService();
     const s3Service = new S3Service();
@@ -31,6 +31,8 @@ export const getPictures: APIGatewayProxyHandler = async (event, context) => {
 
 export const uploadPicture: APIGatewayProxyHandler = async (event, context) => {
   try {
+    const manager = new GalleryManager();
+
     const metadata = event.body!;
     const email = event.requestContext.authorizer?.lambda.email
     const dbPicturesService = new DynamoDBPicturesService();
@@ -45,6 +47,8 @@ export const uploadPicture: APIGatewayProxyHandler = async (event, context) => {
 
 export const s3Uploading: S3Handler = async (event, context) => {
   try {
+    const manager = new GalleryManager();
+
     const pictureKey = event.Records[0].s3.object.key;
 
     const dbPicturesService = new DynamoDBPicturesService();
