@@ -29,9 +29,8 @@ export class UnsplashManager {
       keyWord: queryString.keyWord
     }
     const unsplashResponse = await this.service.getUnsplashPicturesResponse(query);
-    const totalPagesAmount = this.service.countPagesAmount(query.limit);
 
-    return this.service.getUnsplashPictures(unsplashResponse, Number(query.limit), Number(query.page), totalPagesAmount);
+    return this.service.getUnsplashPictures(unsplashResponse, Number(query.limit), Number(query.page));
   }
 
   public async uploadFavoritePictures (id: string, email: string, metadataService: PictureMetadataService, pictureDBService: DynamoDBPicturesService, s3Service: S3Service): Promise<void> {

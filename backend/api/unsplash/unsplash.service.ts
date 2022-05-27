@@ -9,6 +9,7 @@ import imageType from "image-type";
 import {DynamoDBPicturesService} from "@models/DynamoDB/services/dynamoDBPictures.service";
 import {PictureMetadata, RawQueryParams} from "../gallery/gallery.interface";
 import {PictureMetadataService} from "@services/pictureMetadataService";
+import {countPagesAmount} from "@helper/countPagesAmount";
 
 export class UnsplashService {
   private bucketName = getEnv('BUCKET_NAME');
@@ -17,7 +18,7 @@ export class UnsplashService {
   // @ts-ignore
   private unsplashClient = createApi({accessKey: this.accessKey, fetch});
 
-  public getUnsplashPicturesResponse = async (query: Omit<RawQueryParams, 'filter'>): Promise<UnsplashSearchResponse[]> => {
+  public getUnsplashPicturesResponse = async (query: Omit<RawQueryParams, 'filter' | 'page'>): Promise<UnsplashSearchResponse[]> => {
     console.log('query in service', query);
     const pictures = await this.unsplashClient.search.getPhotos({
       query: query.keyWord!,
@@ -41,14 +42,9 @@ export class UnsplashService {
     return picturesInfo;
   }
 
-  public countPagesAmount (limit: string): number {
-    const totalPicturesAmount = this.perPage;
-
-    return Math.ceil(totalPicturesAmount / Number(limit));
-  }
-
-  public async getUnsplashPictures (result: UnsplashSearchResponse[], limit: number, page: number, total: number): Promise<UnsplashPictures> {
+  public async getUnsplashPictures (result: UnsplashSearchResponse[], limit: number, page: number): Promise<UnsplashPictures> {
     const pictureForCurrentPage = result.slice((page - 1) * limit, page * limit);
+    const total = countPagesAmount(this.perPage, limit);
 
     return {
       total,
