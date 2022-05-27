@@ -15,9 +15,14 @@ interface Pictures {
 }
 
 export interface GalleryData {
-  objects: string[];
+  objects: string[],
   page: number;
   total: number;
+}
+
+export interface UnsplashSearchResponse {
+  id: string,
+  urls: {full: string, raw: string, regular: string, small: string, thumb: string}
 }
 
 

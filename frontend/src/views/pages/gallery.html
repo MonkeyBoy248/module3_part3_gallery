@@ -21,10 +21,16 @@
         </div>
         <div class="header__controls__wrapper">
           <div class="header__options-bar">
-            <div class="header__limit-wrapper">
+            <div class="header__limit-wrapper _field-wrapper">
               <label class="header__limit-label" for="header__limit-input">Pictures per page</label>
-              <input class="header__limit-input" type="text" id="header__limit-input">
-              <button class="header__set-limit-button">Set limit</button>
+              <input class="header__limit-input _text-input" type="text" id="header__limit-input">
+              <button class="header__set-limit-button _field-button">Set limit</button>
+            </div>
+            <div class="header__key-word-wrapper _field-wrapper">
+              <label class="header__key-word-label" for="header__key-word-input">Key word</label>
+              <input class="header__key-word-input _text-input" type="text" id="header__key-word-input" placeholder="Enter the key words for query">
+              <button class="header__key-word-button _field-button">Search</button>
+              <button class="header__back-to-user-pictures _field-button">Back to uploaded pictures</button>
             </div>
             <div class="header__filter-wrapper">
               <label class="header__filter-label" for="header__filter-checkbox">Uploaded pictures only</label>
@@ -59,6 +65,10 @@
             <ul class="gallery__links-list">
             </ul>
           </nav>
+          <div class="gallery__favorite-controls">
+<!--            <output class="gallery__favorite-counter"></output>-->
+            <button class="gallery__save-favorites-button _field-button"></button>
+          </div>
         </div>
       </div>
     </section>

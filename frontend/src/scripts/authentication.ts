@@ -14,9 +14,9 @@ const signUpButton = loginForm?.querySelector('.login-form__signup-button') as H
 const authenticationEventsArray: CustomEventListener[] = [
   {target: emailInput, type: 'input', handler: validateInput},
   {target: passwordInput, type: 'change', handler: validateInput},
-  {target: loginForm as HTMLElement, type: 'submit', handler: submitForm},
+  {target: loginForm as HTMLElement, type: 'submit', handler: logIn},
   {target: loginForm as HTMLElement, type: 'focusin', handler: resetErrorMessage},
-  {target: signUpButton as HTMLElement, type: 'click', handler: sendSignUpRequest},
+  {target: signUpButton as HTMLElement, type: 'click', handler: signUp},
 ];
 
 function validateField(field: HTMLInputElement, pattern: RegExp, text: string): void {
@@ -46,7 +46,7 @@ function getFormData (): User {
   }
 }
 
-async function sendFormData() {
+async function sendLogInRequest() {
   const url = logInServerUrl;
   const user = getFormData();
 
@@ -71,31 +71,25 @@ async function sendSignUpRequest () {
   const url = signUpServerUrl;
   const user = getFormData();
 
-  try {
-    if (!user.email || !user.password) {
-      throw new InvalidUserDataError('Fields are empty');
-    }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      body: JSON.stringify(user),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (response.status === 500) {
-      throw new InvalidUserDataError('User with this login already exists');
-    }
-
-    const token: TokenObject = await response.json();
-
-    setTokenAndRedirect(token);
-  } catch (err) {
-    const error = err as Error;
-    setErrorMessage(error.message);
+  if (!user.email || !user.password) {
+    throw new InvalidUserDataError('Fields are empty');
   }
 
+  const response = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(user),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (response.status === 500) {
+    throw new InvalidUserDataError('User with this login already exists');
+  }
+
+  const token: TokenObject = await response.json();
+
+  setTokenAndRedirect(token);
 }
 
 function validateInput(e: Event): void {
@@ -121,10 +115,11 @@ function setTokenAndRedirect (response: TokenObject) {
   }
 }
 
-async function submitForm(e: Event) {
+async function logIn (e: Event) {
   e.preventDefault();
+
   try {
-    const response = await sendFormData();
+    const response = await sendLogInRequest();
 
     setTokenAndRedirect(response);
   } catch (err) {
@@ -134,11 +129,18 @@ async function submitForm(e: Event) {
   }
 }
 
+async function signUp () {
+  try {
+    await sendSignUpRequest();
+  } catch (err) {
+    const error = err as Error;
+
+    setErrorMessage(error.message);
+  }
+}
+
 function setErrorMessage (text: string) {
   submitErrorContainer!.textContent = `${text}`;
-
-  emailInput.value = '';
-  passwordInput.value = '';
 }
 
 function resetErrorMessage() {
@@ -147,9 +149,9 @@ function resetErrorMessage() {
 
 emailInput.addEventListener('input', validateInput);
 passwordInput.addEventListener('change', validateInput);
-loginForm!.addEventListener('submit', submitForm);
+loginForm!.addEventListener('submit', logIn);
 loginForm!.addEventListener('focusin', resetErrorMessage);
-signUpButton.addEventListener('click', sendSignUpRequest);
+signUpButton.addEventListener('click',  signUp);
 
 
 

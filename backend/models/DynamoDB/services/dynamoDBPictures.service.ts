@@ -1,16 +1,21 @@
 import {DynamoDBService} from "@models/DynamoDB/services/dynamoDB.service";
 import {createKeyTemplate} from "@helper/keyTemplate";
 import {getEnv} from "@helper/environment";
-import {PictureMetadata} from "../../../api/gallery/gallery.service";
+import {PictureMetadata} from "../../../api/gallery/gallery.interface";
 
 export interface PictureResponse {
   partitionKey: string,
   sortKey: string,
   name: string,
   email: string,
-  metadata: any;
+  metadata: PictureMetadata;
   dateOfUploading: string;
   status: string;
+}
+
+export interface UpdateParams {
+  updatedAttribute: string,
+  newValue: string | boolean | number | Object | Buffer
 }
 
 export class DynamoDBPicturesService {
@@ -27,7 +32,8 @@ export class DynamoDBPicturesService {
       email,
       metadata,
       dateOfUploading: new Date().toLocaleDateString(),
-      fileOrigin: 'Uploaded'
+      fileOrigin: 'Uploaded',
+      subClipCreated: false
     }
 
     await this.dynamoDBService.putItem(this.userTableName, partitionKey, sortKey, attributes)
@@ -59,16 +65,14 @@ export class DynamoDBPicturesService {
     }
   }
 
-  // getAllUserPictures = async () => {
-  //   const partitionKey = 'uploaded';
-  //   const keyConditionExpression = `status = :u AND begins_with(SK, :i)`;
-  //   const expressionAttributeValues = {
-  //     ':u': `${partitionKey}`,
-  //     ':i': `${this.imagePrefix}#`
-  //   }
-  //   const indexName = 'AllUserPicturesIndex';
-  //   const pictures = await this.dynamoDBService.queryItems(this.userTableName, keyConditionExpression, expressionAttributeValues, indexName);
-  //
-  //   return pictures.Items ? pictures.Items as PictureResponse[]: [];
-  // }
+  updateSubClipCreatedValue = async (email: string, pictureId: string) => {
+    const partitionKey = createKeyTemplate(this.userPrefix, email);
+    const sortKey = createKeyTemplate(this.imagePrefix, pictureId);
+    const updateParams: UpdateParams = {
+      updatedAttribute: 'subClipCreated',
+      newValue: true
+    }
+
+    await this.dynamoDBService.updateItem(this.userTableName, partitionKey, sortKey, updateParams);
+  }
 }

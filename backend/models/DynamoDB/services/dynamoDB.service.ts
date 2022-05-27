@@ -1,15 +1,15 @@
-import {DynamoDBClient, GetItemCommand} from "@aws-sdk/client-dynamodb";
+import {DynamoDBClient} from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient, GetCommand,
   GetCommandInput,
   PutCommand,
   PutCommandInput, QueryCommand, QueryCommandInput,
-  TranslateConfig
+  TranslateConfig, UpdateCommand, UpdateCommandInput
 } from "@aws-sdk/lib-dynamodb";
 import {getEnv} from "@helper/environment";
 import {HashedPassword} from "@services/hashPassword.service";
-import {PictureMetadata} from "../../../api/gallery/gallery.service";
-
+import {PictureMetadata} from "../../../api/gallery/gallery.interface";
+import {UpdateParams} from "@models/DynamoDB/services/dynamoDBPictures.service";
 interface Attributes {
   email?: string,
   password?: HashedPassword,
@@ -87,5 +87,26 @@ export class DynamoDBService {
     console.log('i', params.IndexName);
 
     return this.dynamoDocumentClient.send(new QueryCommand(params));
+  }
+
+  updateItem = async (tableName: string, partitionKey: string, sortKey: string, updateParams: UpdateParams) => {
+    const {updatedAttribute, newValue} = updateParams;
+    console.log('updated attr', updatedAttribute);
+    const params: UpdateCommandInput = {
+      TableName: tableName,
+      Key: {
+        PK: partitionKey,
+        SK: sortKey,
+      },
+      ExpressionAttributeNames: {
+        '#t': updatedAttribute
+      },
+      ExpressionAttributeValues: {
+        ':v': newValue
+      },
+      UpdateExpression: `set #t = :v`,
+    }
+
+    return this.dynamoDocumentClient.send(new UpdateCommand(params));
   }
 }
