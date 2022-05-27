@@ -1,5 +1,5 @@
 import { AuthService } from "./auth.service";
-import { HttpUnauthorizedError } from "@floteam/errors";
+import {HttpBadRequestError, HttpUnauthorizedError} from "@floteam/errors";
 import {DynamoDBUserService} from "@models/DynamoDB/services/dynamoDBUser.service";
 import {HashPasswordService} from "@services/hashPassword.service";
 import {JwtService} from "@services/jwt.service";
@@ -18,16 +18,20 @@ export class AuthManager {
   }
 
   logIn = async (data: string, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService) => {
+    if (!data) {
+      throw new HttpBadRequestError('No user data provided');
+    }
+
     const user = this.service.validateUserData(data);
 
     return this.service.logIn(user, dbUserService, hashService, jwtService);
   }
 
   authenticate = async (token: string, jwtService: JwtService) => {
-    try {
-      return this.service.authenticate(token, jwtService);
-    } catch {
+    if (!token) {
       throw new HttpUnauthorizedError('No token was provided');
     }
+
+    return this.service.authenticate(token, jwtService);
   }
 }
