@@ -9,17 +9,19 @@ import {JwtPayload} from "jsonwebtoken";
 import {DynamoDBUserService} from "@models/DynamoDB/services/dynamoDBUser.service";
 import {JwtService} from "@services/jwt.service";
 import {HashPasswordService} from "@services/hashPassword.service";
-
-const manager = new AuthManager();
+import {JoiService} from "@services/joi.service";
 
 export const signUp: APIGatewayProxyHandlerV2 = async (event, context) => {
   try {
+    const manager = new AuthManager();
+
     const user = event.body!;
     const dbUserService = new DynamoDBUserService();
     const jwtService = new JwtService();
     const hashService = new HashPasswordService();
+    const joiService = new JoiService();
 
-    const response = await manager.signUp(user, dbUserService, hashService, jwtService);
+    const response = await manager.signUp(user, dbUserService, hashService, jwtService, joiService);
 
     return createResponse(200, response);
   } catch (err) {
@@ -29,12 +31,15 @@ export const signUp: APIGatewayProxyHandlerV2 = async (event, context) => {
 
 export const logIn: APIGatewayProxyHandlerV2 = async (event, context) => {
   try {
+    const manager = new AuthManager();
+
     const user = event.body!
     const dbUserService = new DynamoDBUserService();
     const jwtService = new JwtService();
     const hashService = new HashPasswordService();
+    const joiService = new JoiService();
 
-    const token = await manager.logIn(user, dbUserService, hashService, jwtService);
+    const token = await manager.logIn(user, dbUserService, hashService, jwtService, joiService);
 
     return createResponse(200, { token });
   } catch (err) {
@@ -60,11 +65,10 @@ export const authenticate: Handler<
   APIGatewayAuthorizerSimpleResult
   > = async (event, context) => {
   try {
+    const manager = new AuthManager();
+
     const token = event.identitySource?.[0]
     const jwtService = new JwtService();
-
-    console.log('token', token);
-
     const user = await manager.authenticate(token!, jwtService) as JwtPayload;
 
     return generateSimpleResponse(true, {email: user.email});

@@ -1,8 +1,9 @@
-import { CustomEventListener, ListenerRemover } from "../modules/custom_event_listener.js";
-import { Token } from "../modules/token_management.js";
+import { CustomEventListener, ListenerRemover } from "../modules/listenersClearing.js";
+import { Token } from "../modules/token.service.js";
 import { PicturesUploadError, InvalidPageError, TokenError } from "../modules/errors.js";
-import {GalleryData, UnsplashSearchResponse} from "../modules/interfaces.js";
-import * as env from "../modules/environment_variables.js";
+import {GalleryData, UnsplashPictureUrl, UnsplashSearchResponse} from "../modules/interfaces.js";
+import {setCurrentPageUrl} from "../modules/redirection.service.js";
+import * as env from "../modules/env.js";
 
 const galleryPhotos = document.querySelector('.gallery__photos') as HTMLElement;
 const galleryInner = document.querySelector('.gallery__inner') as HTMLElement;
@@ -38,7 +39,7 @@ const galleryEventsArray: CustomEventListener[] = [
   {target: headerLimitInput, type: 'input', handler: validateLimitValue},
   {target: keyWordButton, type: 'click', handler: setKeyWordValueToURL},
   {target: galleryPhotos, type: 'click', handler: addToFavorites},
-  {target: saveFavoritesButton, type: 'click', handler: addToFavorites},
+  {target: saveFavoritesButton, type: 'click', handler: uploadFavorites},
   {target: backToUploadedButton, type: 'click', handler: showGallery}
 ]
 
@@ -58,11 +59,7 @@ interface PictureDimensions extends Pick<Metadata, 'dimensions'>{}
 checkTokenValidity();
 
 async function getPictures (token: string) {
-  const url = setCurrentPageUrl();
-
-  setLimitPlaceholder();
-  setCurrentCheckboxValue();
-  favoritesControls.classList.add('_hidden');
+  const url = setCurrentPageUrl(env.galleryServerUrl);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -86,7 +83,7 @@ async function getPictures (token: string) {
       return data;
 }
 
-function setEmptyResponseMessage (data: string[] | UnsplashSearchResponse[], message: string) {
+function setEmptyResponseMessage (data: string[] | UnsplashPictureUrl[], message: string) {
   const emptyGalleryMessage = document.querySelector('.gallery__empty-message') as HTMLElement;
 
   if (emptyGalleryMessage !== null) {
@@ -142,57 +139,57 @@ async function sendUserPicture () {
     return false;
   }
 
-  try {
-    styleUploadingButton('Processing', true, false);
+  styleUploadingButton('Processing', true, false);
 
-    const response = await fetch(url, {
-      method: 'PUT',
-      body: file
-    })
+  const response = await fetch(url, {
+    method: 'PUT',
+    body: file
+  })
 
-    styleUploadingButton('Upload file', false, true);
+  styleUploadingButton('Upload file', false, true);
 
-    const responseStatus = response.status;
+  const responseStatus = response.status;
 
-    if (responseStatus === 500) {
-      throw new PicturesUploadError();
-    }
-
-    await showGallery();
-
-  } catch (err) {
-    console.log(err);
+  if (responseStatus === 500) {
+    throw new PicturesUploadError();
   }
 }
 
-async function getUnsplashPictures () {
-  checkTokenValidity();
+async function getUnsplashPictures (token: string) {
+  const url = setCurrentPageUrl(env.unsplashPicturesServerUrl);
+  console.log('url', url);
 
-  const keyWordValue = env.currentUrl.searchParams.get('keyWord');
-  const url = `${env.unsplashPicturesServerUrl}?keyWord=${keyWordValue}`;
-  const token = Token.getToken();
-
-  filterCheckbox.disabled = true;
-  setLimitPlaceholder();
-  favoritesControls.classList.remove('_hidden');
-
-  if (token) {
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': token
-        }
-      });
-
-      const pictures: UnsplashSearchResponse[] = await response.json();
-      console.log('pictures', pictures);
-
-      setEmptyResponseMessage(pictures, 'Nothing found');
-      backToUploadedButton.disabled = false;
-      createPictureTemplate(pictures);
-    } catch (err) {
-      console.log(err);
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': token
     }
+  });
+
+  const pictures: UnsplashSearchResponse = await response.json();
+  console.log('unsplash', pictures);
+
+  return pictures;
+}
+
+async function showUnsplashPictures () {
+  try {
+    filterCheckbox.disabled = true;
+    setLimitPlaceholder();
+
+    const token = Token.getToken();
+
+    if (token) {
+      const pictures = await getUnsplashPictures(token);
+
+      setEmptyResponseMessage(pictures.result, 'Nothing found');
+      backToUploadedButton.disabled = false;
+      createPictureTemplate(pictures.result);
+      createLinksTemplate(pictures.total);
+      setPageNumber();
+      favoritesControls.classList.remove('_hidden');
+    }
+  } catch (err) {
+    console.log('unsplash err', err)
   }
 }
 
@@ -212,10 +209,19 @@ async function sendFavoriteIds () {
       },
       body: JSON.stringify(favoriteIds),
     })
-    const result = await response.json();
-    resetFavorites();
 
+    const result = await response.json();
     console.log('Success', result);
+  }
+}
+
+async function uploadFavorites () {
+  try {
+    await sendFavoriteIds();
+
+    resetFavorites();
+  } catch (err) {
+    console.log('error', err);
   }
 }
 
@@ -314,7 +320,7 @@ function redirectToTheTargetPage (e: Event) {
     );
 }
 
-function createPictureTemplate (pictures: string[] | UnsplashSearchResponse[]): void {
+function createPictureTemplate (pictures: string[] | UnsplashPictureUrl[]): void {
   galleryPhotos.innerHTML = ''
 
   for (let link of pictures) {
@@ -362,6 +368,11 @@ function createErrorMessageTemplate (message: string, errType: string, targetPag
 }
 
 async function uploadUserFile (e: Event) {
+  try {
+
+  } catch (err) {
+    console.log('uploading error', err);
+  }
   e.preventDefault();
   const selectedFiles = galleryUploadInput.files;
 
@@ -370,7 +381,10 @@ async function uploadUserFile (e: Event) {
     return false;
   }
 
+  styleUploadingButton('Processing', true, false);
   await sendUserPicture();
+  styleUploadingButton('Upload file', false, true);
+  await showGallery();
 
   headerFilesContainer.innerHTML = '';
 }
@@ -432,18 +446,13 @@ function updateMessageBeforeRedirection (timer: number): void {
 }
 
 function redirectWhenTokenExpires (delay: number): void {
-  const limit = env.currentUrl.searchParams.get('limit') || '4';
-  const pageNumber = env.currentUrl.searchParams.get('page') || '1';
-  const filter = env.currentUrl.searchParams.get('filter') || 'false';
-  const keyWord = env.currentUrl.searchParams.get('keyWord') || '';
+  const loginUrl = setCurrentPageUrl(env.loginUrl);
 
   if (!Token.getTokenObject()) {
     ListenerRemover.removeEventListeners(galleryEventsArray);
     updateMessageBeforeRedirection(delay / 1000);
     setTimeout(() => {
-      window.location.replace(
-        `${env.loginUrl}?currentPage=${pageNumber}&limit=${limit}&filter=${filter}&keyWord=${keyWord}`
-      );
+      window.location.replace(loginUrl);
     }, delay)
   }
 }
@@ -493,14 +502,6 @@ function setLimitPlaceholder () {
     `${placeholderTemplate} 4`
     :
     `${placeholderTemplate} ${lastLimitValue}`
-}
-
-function setCurrentPageUrl (): string {
-  const limit = env.currentUrl.searchParams.get('limit') || '4';
-  const pageNumber = env.currentUrl.searchParams.get('page') || '1';
-  const filter = env.currentUrl.searchParams.get('filter') || 'false';
-
-  return `${env.galleryServerUrl}?page=${pageNumber}&limit=${limit}&filter=${filter}`;
 }
 
 async function changeCurrentPage (e: Event): Promise<void> {
@@ -554,14 +555,20 @@ function displayUserEmail () {
 }
 
 async function setInitialInformation () {
+  checkTokenValidity();
+
   displayUserEmail();
   setKeyWordInputValue();
   setFavoritesCounterValue();
 
+  if (keyWordInput.value === '') {
+    keyWordButton.disabled = true;
+  }
+
   const currentKeyWordValue = env.currentUrl.searchParams.get('keyWord')
 
   if (currentKeyWordValue) {
-    await getUnsplashPictures();
+    await showUnsplashPictures();
 
     return;
   }
@@ -574,7 +581,7 @@ function getClickedPictureId (target: HTMLElement, id: string) {
     const pictureIndex = favoritePictureIds.indexOf(id);
 
     target.classList.remove('liked');
-    favoritePictureIds.splice(pictureIndex);
+    favoritePictureIds.splice(pictureIndex, 1);
     setFavoritesCounterValue();
     console.log('deleted');
 
@@ -604,14 +611,21 @@ function addToFavorites (e: Event) {
 }
 
 async function showGallery () {
+  checkTokenValidity();
+
+  favoritesControls.classList.add('_hidden');
+  setLimitPlaceholder();
+  setCurrentCheckboxValue();
+  backToUploadedButton.disabled = true;
+  filterCheckbox.disabled = false;
+
   const token = Token.getToken();
 
   if (token) {
     try {
       const pictures = await getPictures(token);
-      setEmptyResponseMessage(pictures.objects, 'No pictures uploaded');
-      backToUploadedButton.disabled = true;
 
+      setEmptyResponseMessage(pictures.objects, 'No pictures uploaded');
       createPictureTemplate(pictures.objects);
       createLinksTemplate(pictures.total);
       setPageNumber();
@@ -636,6 +650,16 @@ async function showGallery () {
   }
 }
 
+function validateKeyWordInput () {
+  if (keyWordInput.value === '') {
+    keyWordButton.disabled = true;
+
+    return;
+  }
+
+  keyWordButton.disabled = false;
+}
+
 document.addEventListener('DOMContentLoaded', setInitialInformation);
 pagesLinksList.addEventListener('click', changeCurrentPage);
 galleryErrorContainer.addEventListener('click', redirectToTheTargetPage);
@@ -646,8 +670,9 @@ headerLimitInput.addEventListener('input', validateLimitValue);
 filterCheckbox.addEventListener('change', addFilterValueToURL);
 keyWordButton.addEventListener('click', setKeyWordValueToURL);
 galleryPhotos.addEventListener('click', addToFavorites);
-saveFavoritesButton.addEventListener('click', sendFavoriteIds);
+saveFavoritesButton.addEventListener('click', uploadFavorites);
 backToUploadedButton.addEventListener('click', showGallery);
+keyWordInput.addEventListener('input', validateKeyWordInput);
 
 
 

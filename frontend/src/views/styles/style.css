@@ -145,6 +145,11 @@ body {
   cursor: auto;
 }
 
+._field-button:disabled {
+  opacity: 0.5;
+  cursor: auto;
+}
+
 /*.header__back-to-user-pictures {*/
 /*  background-color: #e9982d;*/
 /*}*/
@@ -152,11 +157,6 @@ body {
 /*.header__back-to-user-pictures:hover {*/
 /*  background-color: #d059e7;*/
 /*}*/
-
-.header__back-to-user-pictures:disabled {
-  opacity: 0.5;
-  cursor: auto;
-}
 
 .header__upload-wrapper {
   display: flex;
@@ -253,6 +253,13 @@ body {
   align-items: center;
   justify-content: center;
   position: relative;
+  gap: 20px;
+}
+
+.gallery__favorite-controls {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
 }
 
 .gallery__save-favorites-button {
@@ -266,6 +273,8 @@ body {
 .gallery__empty-message {
   font-size: 28px;
   color: #ffffff;
+  margin-top: -50px;
+  margin-bottom: 100px;
 }
 
 .gallery__photos {
@@ -312,6 +321,7 @@ body {
   list-style: none;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 20px;
   margin-top: 40px;
 }

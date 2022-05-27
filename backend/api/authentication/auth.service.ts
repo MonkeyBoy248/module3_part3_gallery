@@ -1,49 +1,46 @@
-import { RequestUser } from "./auth.interface";
+import {RequestUser, Token} from "./auth.interface";
 import { HashPasswordService } from "@services/hashPassword.service";
 import { JwtService} from "@services/jwt.service";
 import { AlreadyExistsError, HttpBadRequestError, HttpUnauthorizedError } from "@floteam/errors";
 import {DynamoDBUserService} from "@models/DynamoDB/services/dynamoDBUser.service";
+import {JwtPayload} from "jsonwebtoken";
+import {JoiService} from "@services/joi.service";
 
 export class AuthService {
-  validateUserData = (data: string) => {
-    const userData = JSON.parse(data);
+  public async validateUserData (user: RequestUser, joiService: JoiService): Promise<RequestUser> {
+    let validatedUser: RequestUser | undefined;
 
-    if (!userData.email) {
-      throw new HttpBadRequestError('No email was provided');
+    try {
+      validatedUser = await joiService.validateUserObject(user);
+    } catch (err) {
+      console.log(err);
     }
 
-    if (!userData.password) {
-      throw new HttpBadRequestError('No password was provided')
+    if (!validatedUser) {
+      throw new HttpBadRequestError('Invalid user data')
     }
 
-    const userObject: RequestUser = {
-      email: userData.email,
-      password: userData.password
-    }
-
-    return userObject;
+    return validatedUser;
   }
 
-  signUp = async (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService) => {
+  public async signUp (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService): Promise<Token> {
     try {
       await dbUserService.createUserObjectInDB(userData.email, userData.password);
-      const token = jwtService.createToken(userData.email);
+      const token = await jwtService.createToken(userData.email);
 
-      return token
+      console.log('token', token);
+
+      return {token}
     } catch (err) {
       throw new AlreadyExistsError(`User with this email already exists, ${err}`)
     }
   }
 
-  logIn = async (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService) => {
-    const contender = await dbUserService.getUserByEmail(userData.email);
-
-    if (!contender) {
-      throw new HttpUnauthorizedError('User does not exist');
-    }
-
+  public async logIn (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService): Promise<string>{
     try {
-      await hashService.comparePasswords(contender?.password.hash, contender.password.salt, userData.password);
+      const contender = await dbUserService.getUserByEmail(userData.email);
+
+      await hashService.comparePasswords(contender.password.hash, contender.password.salt, userData.password);
 
       return jwtService.createToken(contender.email);
     } catch (err) {
@@ -51,7 +48,7 @@ export class AuthService {
     }
   }
 
-  authenticate = async (token: string, jwtService: JwtService) => {
+  public async authenticate (token: string, jwtService: JwtService): Promise<string | JwtPayload>{
     try {
       return jwtService.verifyToken(token);
     } catch (err) {

@@ -1,8 +1,11 @@
 import { AuthService } from "./auth.service";
-import { HttpUnauthorizedError } from "@floteam/errors";
+import {HttpBadRequestError, HttpUnauthorizedError} from "@floteam/errors";
 import {DynamoDBUserService} from "@models/DynamoDB/services/dynamoDBUser.service";
 import {HashPasswordService} from "@services/hashPassword.service";
 import {JwtService} from "@services/jwt.service";
+import {RequestUser, Token} from "./auth.interface";
+import {JwtPayload} from "jsonwebtoken";
+import {JoiService} from "@services/joi.service";
 
 export class AuthManager {
   private readonly service: AuthService;
@@ -11,23 +14,29 @@ export class AuthManager {
     this.service = new AuthService();
   }
 
-  signUp = async (data: string, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService) => {
-    const user = this.service.validateUserData(data);
+  public async signUp (data: string, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService, joiService: JoiService): Promise<Token>{
+    const user: RequestUser = JSON.parse(data);
+    const validateUser = await this.service.validateUserData(user, joiService);
 
-    return this.service.signUp(user, dbUserService, hashService, jwtService);
+    return this.service.signUp(validateUser, dbUserService, hashService, jwtService);
   }
 
-  logIn = async (data: string, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService) => {
-    const user = this.service.validateUserData(data);
+  public async logIn (data: string, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService, joiService: JoiService): Promise<string>{
+    if (!data) {
+      throw new HttpBadRequestError('No user data provided');
+    }
 
-    return this.service.logIn(user, dbUserService, hashService, jwtService);
+    const user: RequestUser = JSON.parse(data);
+    const validatedUser = await this.service.validateUserData(user, joiService);
+
+    return this.service.logIn(validatedUser, dbUserService, hashService, jwtService);
   }
 
-  authenticate = async (token: string, jwtService: JwtService) => {
-    try {
-      return this.service.authenticate(token, jwtService);
-    } catch {
+  public async authenticate (token: string, jwtService: JwtService): Promise<string | JwtPayload>{
+    if (!token) {
       throw new HttpUnauthorizedError('No token was provided');
     }
+
+    return this.service.authenticate(token, jwtService);
   }
 }

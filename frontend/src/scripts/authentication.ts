@@ -1,30 +1,30 @@
-import { CustomEventListener, ListenerRemover } from "../modules/custom_event_listener.js";
-import {logInServerUrl, signUpServerUrl} from "../modules/environment_variables.js";
+import { CustomEventListener, ListenerRemover } from "../modules/listenersClearing.js";
+import {logInServerUrl, signUpServerUrl} from "../modules/env.js";
 import { InvalidUserDataError } from "../modules/errors.js";
-import { redirectToTheGalleryPage } from "../modules/gallery_redirection.js";
+import { redirectToTheGalleryPage } from "../modules/redirection.service.js";
 import { TokenObject, User } from "../modules/interfaces.js";
-import { Token } from "../modules/token_management.js";
+import { Token } from "../modules/token.service.js";
 
-const loginForm = document.forms?.namedItem("login");
-const emailInput = loginForm?.elements.namedItem("email") as HTMLInputElement;
-const passwordInput = loginForm?.elements.namedItem("password") as HTMLInputElement;
-const submitButton = loginForm?.elements.namedItem("submit") as HTMLButtonElement;
+const loginForm = document.forms?.namedItem('login');
+const emailInput = loginForm?.elements.namedItem('email') as HTMLInputElement;
+const passwordInput = loginForm?.elements.namedItem('password') as HTMLInputElement;
+const loginButton = loginForm?.elements.namedItem('logIn') as HTMLButtonElement;
 const submitErrorContainer = loginForm?.querySelector('.login-form__submit-error-message');
-const signUpButton = loginForm?.querySelector('.login-form__signup-button') as HTMLButtonElement;
+const signUpButton = loginForm?.elements.namedItem('signUp') as HTMLButtonElement;
 const authenticationEventsArray: CustomEventListener[] = [
   {target: emailInput, type: 'input', handler: validateInput},
   {target: passwordInput, type: 'change', handler: validateInput},
-  {target: loginForm as HTMLElement, type: 'submit', handler: logIn},
-  {target: loginForm as HTMLElement, type: 'focusin', handler: resetErrorMessage},
-  {target: signUpButton as HTMLElement, type: 'click', handler: signUp},
+  {target: loginButton, type: 'click', handler: logIn},
+  {target: loginForm as HTMLFormElement, type: 'focusin', handler: resetErrorMessage},
+  {target: signUpButton, type: 'click', handler: signUp},
 ];
 
 function validateField(field: HTMLInputElement, pattern: RegExp, text: string): void {
   const targetErrorContainer = loginForm!.querySelector(`.login-form__${field.name}-error-message`) as HTMLElement;
 
   targetErrorContainer.textContent = '';
-  submitButton.disabled = false;
-  submitButton.classList.remove('_disabled')
+  loginButton.disabled = false;
+  loginButton.classList.remove('_disabled')
   field.classList.remove('invalid');
 
   if (field.value.length !== 0 && !pattern.test(field.value)) {
@@ -34,8 +34,8 @@ function validateField(field: HTMLInputElement, pattern: RegExp, text: string): 
 
 function showErrorMessage(text: string, targetElement: HTMLElement, field: HTMLInputElement): void {
   targetElement.textContent = `${text}`;
-  submitButton.disabled = true;
-  submitButton.classList.add('_disabled');
+  loginButton.disabled = true;
+  loginButton.classList.add('_disabled');
   field.classList.add('invalid');
 }
 
@@ -72,7 +72,7 @@ async function sendSignUpRequest () {
   const user = getFormData();
 
   if (!user.email || !user.password) {
-    throw new InvalidUserDataError('Fields are empty');
+    throw new InvalidUserDataError('Some fields are empty');
   }
 
   const response = await fetch(url, {
@@ -115,9 +115,7 @@ function setTokenAndRedirect (response: TokenObject) {
   }
 }
 
-async function logIn (e: Event) {
-  e.preventDefault();
-
+async function logIn () {
   try {
     const response = await sendLogInRequest();
 
@@ -134,8 +132,9 @@ async function signUp () {
     await sendSignUpRequest();
   } catch (err) {
     const error = err as Error;
+    console.log(error.message)
 
-    setErrorMessage(error.message);
+    setErrorMessage('Failed to sign up. Please, enter other data');
   }
 }
 
@@ -149,7 +148,7 @@ function resetErrorMessage() {
 
 emailInput.addEventListener('input', validateInput);
 passwordInput.addEventListener('change', validateInput);
-loginForm!.addEventListener('submit', logIn);
+loginButton.addEventListener('click', logIn);
 loginForm!.addEventListener('focusin', resetErrorMessage);
 signUpButton.addEventListener('click',  signUp);
 
