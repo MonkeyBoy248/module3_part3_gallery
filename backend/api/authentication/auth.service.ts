@@ -38,13 +38,9 @@ export class AuthService {
   }
 
   logIn = async (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService) => {
-    const contender = await dbUserService.getUserByEmail(userData.email);
-
-    if (!contender) {
-      throw new HttpUnauthorizedError('User does not exist');
-    }
-
     try {
+      const contender = await dbUserService.getUserByEmail(userData.email);
+      console.log('contender', contender, contender.email);
       await hashService.comparePasswords(contender?.password.hash, contender.password.salt, userData.password);
 
       return jwtService.createToken(contender.email);
@@ -57,7 +53,7 @@ export class AuthService {
     try {
       return jwtService.verifyToken(token);
     } catch (err) {
-      throw new HttpUnauthorizedError('Invalid token');
+      throw new HttpUnauthorizedError(`${err}`);
     }
   }
 }
