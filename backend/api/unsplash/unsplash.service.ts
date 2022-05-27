@@ -2,35 +2,33 @@ import {createApi} from 'unsplash-js';
 import fetch from "node-fetch";
 import {getEnv} from "@helper/environment";
 import {HttpBadRequestError} from "@floteam/errors";
-import {UnsplashPictureMetadata, UnsplashSearchResponse} from "./unsplash.interface";
+import {UnsplashPictureMetadata, UnsplashPictures, UnsplashSearchResponse} from "./unsplash.interface";
 import {S3Service} from "@services/S3.service";
 import {v4 as uuidv4} from "uuid";
 import imageType from "image-type";
 import {DynamoDBPicturesService} from "@models/DynamoDB/services/dynamoDBPictures.service";
-import {PictureMetadata} from "../gallery/gallery.interface";
+import {PictureMetadata, RawQueryParams} from "../gallery/gallery.interface";
 import {PictureMetadataService} from "@services/pictureMetadataService";
 
 export class UnsplashService {
   private bucketName = getEnv('BUCKET_NAME');
-
   private accessKey = getEnv('UNSPLASH_ACCESS_KEY');
+  private perPage = 30;
   // @ts-ignore
   private unsplashClient = createApi({accessKey: this.accessKey, fetch});
 
-  getUnsplashPicturesByAKeyWord = async (query: string) => {
+  getUnsplashPicturesResponse = async (query: Omit<RawQueryParams, 'filter'>) => {
     console.log('query in service', query);
     const pictures = await this.unsplashClient.search.getPhotos({
-      query,
+      query: query.keyWord!,
       page: 1,
-      perPage: 10
+      perPage: this.perPage
     })
 
     if (pictures.type === 'error') {
       throw new HttpBadRequestError('Failed to fetch');
     }
 
-    console.log('pictures', pictures.response?.results)
-    console.log('pictures status', pictures.status);
     const result = pictures.response?.results;
 
     const picturesInfo: UnsplashSearchResponse[] = result.map((picture) => {
@@ -38,9 +36,24 @@ export class UnsplashService {
         id: picture.id,
         urls: picture.urls
       }
-    })
+    });
 
     return picturesInfo;
+  }
+
+  public countPagesAmount (limit: string): number {
+    const totalPicturesAmount = this.perPage;
+
+    return Math.ceil(totalPicturesAmount / Number(limit));
+  }
+
+  public async getUnsplashPictures (result: UnsplashSearchResponse[], limit: number, page: number, total: number): Promise<UnsplashPictures> {
+    const pictureForCurrentPage = result.slice((page - 1) * limit, page * limit);
+
+    return {
+      total,
+      result: pictureForCurrentPage
+    }
   }
 
   getUnsplashFavoritesMetadata = async (ids: string[]): Promise<UnsplashPictureMetadata[]> => {

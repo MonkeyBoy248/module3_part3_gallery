@@ -8,6 +8,7 @@ export interface RawQueryParams {
   page: string,
   limit: string,
   filter: string,
+  keyWord?: string
 }
 
 export interface QueryObject {

@@ -8,11 +8,16 @@ export interface FavoriteIds {
 }
 
 export interface UnsplashPictureMetadata {
-  buff?: Buffer,
-  type?: string,
-  size?: number,
+  buff?: Buffer;
+  type?: string;
+  size?: number;
   location: string;
-  width: number,
-  height: number,
-  downloadUrl?: string
+  width: number;
+  height: number;
+  downloadUrl?: string;
+}
+
+export interface UnsplashPictures {
+  total: number;
+  result: UnsplashSearchResponse[];
 }

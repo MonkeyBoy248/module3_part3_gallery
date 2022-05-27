@@ -1,9 +1,11 @@
 import {UnsplashService} from "./unsplash.service";
 import {HttpBadRequestError} from "@floteam/errors";
-import {FavoriteIds} from "./unsplash.interface";
+import {FavoriteIds, UnsplashPictures} from "./unsplash.interface";
 import {S3Service} from "@services/S3.service";
 import {DynamoDBPicturesService} from "@models/DynamoDB/services/dynamoDBPictures.service";
 import {PictureMetadataService} from "@services/pictureMetadataService";
+import {APIGatewayProxyEventQueryStringParameters} from "aws-lambda";
+import {RawQueryParams} from "../gallery/gallery.interface";
 
 export class UnsplashManager {
   private readonly service: UnsplashService;
@@ -12,17 +14,27 @@ export class UnsplashManager {
     this.service = new UnsplashService();
   }
 
-  getPicturesByAKeyWord = async (queryString?: string | null) => {
+  public async getPicturesByAKeyWord (queryString:  APIGatewayProxyEventQueryStringParameters): Promise<UnsplashPictures> {
     if (!queryString) {
       throw new HttpBadRequestError('No query string was provided');
     }
 
-    console.log('query', queryString);
+    if (!queryString.page || !queryString.limit) {
+      throw new HttpBadRequestError('No page or limit value was provided');
+    }
 
-    return this.service.getUnsplashPicturesByAKeyWord(queryString);
+    const query: Omit<RawQueryParams, 'filter'> = {
+      page: queryString.page,
+      limit: queryString.limit,
+      keyWord: queryString.keyWord
+    }
+    const unsplashResponse = await this.service.getUnsplashPicturesResponse(query);
+    const totalPagesAmount = this.service.countPagesAmount(query.limit);
+
+    return this.service.getUnsplashPictures(unsplashResponse, Number(query.limit), Number(query.page), totalPagesAmount);
   }
 
-  uploadFavoritePictures = async (id: string | undefined | null, email: string, metadataService: PictureMetadataService, pictureDBService: DynamoDBPicturesService, s3Service: S3Service) => {
+  public async uploadFavoritePictures (id: string, email: string, metadataService: PictureMetadataService, pictureDBService: DynamoDBPicturesService, s3Service: S3Service): Promise<{message: string}> {
     if (!id) {
       throw new HttpBadRequestError('No ids was provided');
     }

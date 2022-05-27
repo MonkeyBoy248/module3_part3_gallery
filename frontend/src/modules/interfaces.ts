@@ -8,21 +8,20 @@ export interface User {
   password: string;
 }
 
-interface Pictures {
-  id: number,
-  path: string,
-  metadata: object[];
-}
-
 export interface GalleryData {
   objects: string[],
   page: number;
   total: number;
 }
 
-export interface UnsplashSearchResponse {
-  id: string,
+export interface UnsplashPictureUrl {
+  id: string;
   urls: {full: string, raw: string, regular: string, small: string, thumb: string}
+}
+
+export interface UnsplashSearchResponse {
+  total: number;
+  result: UnsplashPictureUrl[]
 }
 
 

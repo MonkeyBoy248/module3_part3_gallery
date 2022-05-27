@@ -250,9 +250,10 @@ body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  /*align-items: center;*/
   justify-content: center;
   position: relative;
+  gap: 20px;
 }
 
 .gallery__save-favorites-button {
@@ -266,6 +267,8 @@ body {
 .gallery__empty-message {
   font-size: 28px;
   color: #ffffff;
+  margin-top: -50px;
+  margin-bottom: 100px;
 }
 
 .gallery__photos {
@@ -312,6 +315,7 @@ body {
   list-style: none;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 20px;
   margin-top: 40px;
 }

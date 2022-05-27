@@ -1,7 +1,7 @@
 import { CustomEventListener, ListenerRemover } from "../modules/custom_event_listener.js";
 import { Token } from "../modules/token_management.js";
 import { PicturesUploadError, InvalidPageError, TokenError } from "../modules/errors.js";
-import {GalleryData, UnsplashSearchResponse} from "../modules/interfaces.js";
+import {GalleryData, UnsplashPictureUrl, UnsplashSearchResponse} from "../modules/interfaces.js";
 import * as env from "../modules/environment_variables.js";
 
 const galleryPhotos = document.querySelector('.gallery__photos') as HTMLElement;
@@ -58,7 +58,7 @@ interface PictureDimensions extends Pick<Metadata, 'dimensions'>{}
 checkTokenValidity();
 
 async function getPictures (token: string) {
-  const url = setCurrentPageUrl();
+  const url = setCurrentPageUrl(env.galleryServerUrl);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -82,7 +82,7 @@ async function getPictures (token: string) {
       return data;
 }
 
-function setEmptyResponseMessage (data: string[] | UnsplashSearchResponse[], message: string) {
+function setEmptyResponseMessage (data: string[] | UnsplashPictureUrl[], message: string) {
   const emptyGalleryMessage = document.querySelector('.gallery__empty-message') as HTMLElement;
 
   if (emptyGalleryMessage !== null) {
@@ -155,8 +155,8 @@ async function sendUserPicture () {
 }
 
 async function getUnsplashPictures (token: string) {
-  const keyWordValue = env.currentUrl.searchParams.get('keyWord');
-  const url = `${env.unsplashPicturesServerUrl}?keyWord=${keyWordValue}`;
+  const url = setCurrentPageUrl(env.unsplashPicturesServerUrl);
+  console.log('url', url);
 
   const response = await fetch(url, {
     headers: {
@@ -164,7 +164,8 @@ async function getUnsplashPictures (token: string) {
     }
   });
 
-  const pictures: UnsplashSearchResponse[] = await response.json();
+  const pictures: UnsplashSearchResponse = await response.json();
+  console.log('unsplash', pictures);
 
   return pictures;
 }
@@ -180,9 +181,11 @@ async function showUnsplashPictures () {
     if (token) {
       const pictures = await getUnsplashPictures(token);
 
-      setEmptyResponseMessage(pictures, 'Nothing found');
+      setEmptyResponseMessage(pictures.result, 'Nothing found');
       backToUploadedButton.disabled = false;
-      createPictureTemplate(pictures);
+      createPictureTemplate(pictures.result);
+      createLinksTemplate(pictures.total);
+      setPageNumber();
       favoritesControls.classList.remove('_hidden');
     }
   } catch (err) {
@@ -318,7 +321,7 @@ function redirectToTheTargetPage (e: Event) {
     );
 }
 
-function createPictureTemplate (pictures: string[] | UnsplashSearchResponse[]): void {
+function createPictureTemplate (pictures: string[] | UnsplashPictureUrl[]): void {
   galleryPhotos.innerHTML = ''
 
   for (let link of pictures) {
@@ -444,18 +447,13 @@ function updateMessageBeforeRedirection (timer: number): void {
 }
 
 function redirectWhenTokenExpires (delay: number): void {
-  const limit = env.currentUrl.searchParams.get('limit') || '4';
-  const pageNumber = env.currentUrl.searchParams.get('page') || '1';
-  const filter = env.currentUrl.searchParams.get('filter') || 'false';
-  const keyWord = env.currentUrl.searchParams.get('keyWord') || '';
+  const loginUrl = setCurrentPageUrl(env.loginUrl);
 
   if (!Token.getTokenObject()) {
     ListenerRemover.removeEventListeners(galleryEventsArray);
     updateMessageBeforeRedirection(delay / 1000);
     setTimeout(() => {
-      window.location.replace(
-        `${env.loginUrl}?currentPage=${pageNumber}&limit=${limit}&filter=${filter}&keyWord=${keyWord}`
-      );
+      window.location.replace(loginUrl);
     }, delay)
   }
 }
@@ -507,12 +505,13 @@ function setLimitPlaceholder () {
     `${placeholderTemplate} ${lastLimitValue}`
 }
 
-function setCurrentPageUrl (): string {
+function setCurrentPageUrl (targetUrl: string): string {
   const limit = env.currentUrl.searchParams.get('limit') || '4';
   const pageNumber = env.currentUrl.searchParams.get('page') || '1';
   const filter = env.currentUrl.searchParams.get('filter') || 'false';
+  const keyWord = env.currentUrl.searchParams.get('keyWord');
 
-  return `${env.galleryServerUrl}?page=${pageNumber}&limit=${limit}&filter=${filter}`;
+  return `${targetUrl}?page=${pageNumber}&limit=${limit}&filter=${filter}&keyWord=${keyWord}`;
 }
 
 async function changeCurrentPage (e: Event): Promise<void> {
@@ -623,6 +622,7 @@ async function showGallery () {
   filterCheckbox.disabled = false;
 
   const token = Token.getToken();
+  console.log('token', token);
 
   if (token) {
     try {
