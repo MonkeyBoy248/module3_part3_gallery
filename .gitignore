@@ -20,5 +20,4 @@ backend/typings/
 backend/documentation/
 backend/coverage/
 backend/.esbuild/
-/frontend/src/views/modules/
-/frontend/src/views/scripts/
+build/
