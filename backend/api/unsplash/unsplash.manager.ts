@@ -34,7 +34,7 @@ export class UnsplashManager {
     return this.service.getUnsplashPictures(unsplashResponse, Number(query.limit), Number(query.page), totalPagesAmount);
   }
 
-  public async uploadFavoritePictures (id: string, email: string, metadataService: PictureMetadataService, pictureDBService: DynamoDBPicturesService, s3Service: S3Service): Promise<{message: string}> {
+  public async uploadFavoritePictures (id: string, email: string, metadataService: PictureMetadataService, pictureDBService: DynamoDBPicturesService, s3Service: S3Service): Promise<void> {
     if (!id) {
       throw new HttpBadRequestError('No ids was provided');
     }

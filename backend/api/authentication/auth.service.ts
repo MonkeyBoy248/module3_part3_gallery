@@ -1,11 +1,12 @@
-import { RequestUser } from "./auth.interface";
+import {RequestUser, Token} from "./auth.interface";
 import { HashPasswordService } from "@services/hashPassword.service";
 import { JwtService} from "@services/jwt.service";
 import { AlreadyExistsError, HttpBadRequestError, HttpUnauthorizedError } from "@floteam/errors";
 import {DynamoDBUserService} from "@models/DynamoDB/services/dynamoDBUser.service";
+import {JwtPayload} from "jsonwebtoken";
 
 export class AuthService {
-  validateUserData = (data: string) => {
+  public validateUserData (data: string): RequestUser {
     const userData = JSON.parse(data);
 
     if (!userData.email) {
@@ -24,7 +25,7 @@ export class AuthService {
     return userObject;
   }
 
-  signUp = async (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService) => {
+  public async signUp (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService): Promise<Token> {
     try {
       await dbUserService.createUserObjectInDB(userData.email, userData.password);
       const token = await jwtService.createToken(userData.email);
@@ -37,15 +38,11 @@ export class AuthService {
     }
   }
 
-  logIn = async (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService) => {
-    const contender = await dbUserService.getUserByEmail(userData.email);
-
-    if (!contender) {
-      throw new HttpUnauthorizedError('User does not exist');
-    }
-
+  public async logIn (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService): Promise<string>{
     try {
-      await hashService.comparePasswords(contender?.password.hash, contender.password.salt, userData.password);
+      const contender = await dbUserService.getUserByEmail(userData.email);
+
+      await hashService.comparePasswords(contender.password.hash, contender.password.salt, userData.password);
 
       return jwtService.createToken(contender.email);
     } catch (err) {
@@ -53,7 +50,7 @@ export class AuthService {
     }
   }
 
-  authenticate = async (token: string, jwtService: JwtService) => {
+  public async authenticate (token: string, jwtService: JwtService): Promise<string | JwtPayload>{
     try {
       return jwtService.verifyToken(token);
     } catch (err) {

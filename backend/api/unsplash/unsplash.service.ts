@@ -17,7 +17,7 @@ export class UnsplashService {
   // @ts-ignore
   private unsplashClient = createApi({accessKey: this.accessKey, fetch});
 
-  getUnsplashPicturesResponse = async (query: Omit<RawQueryParams, 'filter'>) => {
+  public getUnsplashPicturesResponse = async (query: Omit<RawQueryParams, 'filter'>): Promise<UnsplashSearchResponse[]> => {
     console.log('query in service', query);
     const pictures = await this.unsplashClient.search.getPhotos({
       query: query.keyWord!,
@@ -26,7 +26,7 @@ export class UnsplashService {
     })
 
     if (pictures.type === 'error') {
-      throw new HttpBadRequestError('Failed to fetch');
+      throw new HttpBadRequestError('Failed to fetch unsplash pictures');
     }
 
     const result = pictures.response?.results;
@@ -56,7 +56,7 @@ export class UnsplashService {
     }
   }
 
-  getUnsplashFavoritesMetadata = async (ids: string[]): Promise<UnsplashPictureMetadata[]> => {
+  public async getUnsplashFavoritesMetadata (ids: string[]): Promise<UnsplashPictureMetadata[]> {
     const imagesList = ids.map(this.getUnsplashPictureMetadata)
     const picturesMetadata = await Promise.all(imagesList);
 
@@ -65,7 +65,7 @@ export class UnsplashService {
     return picturesMetadata;
   }
 
-  getUnsplashPictureMetadata = async (id: string): Promise<UnsplashPictureMetadata> => {
+  public getUnsplashPictureMetadata = async  (id: string): Promise<UnsplashPictureMetadata> => {
     return new Promise(async (resolve, reject) => {
       try {
         const pictureData = await this.unsplashClient.photos.get({photoId: id});
@@ -85,7 +85,7 @@ export class UnsplashService {
     })
   }
 
-  getUnsplashFavoritePictureDownloadUrl = async (picture: UnsplashPictureMetadata) => {
+  getUnsplashFavoritePictureDownloadUrl = async (picture: UnsplashPictureMetadata): Promise<void> => {
     const downloadLink = await this.unsplashClient.photos.trackDownload ({
       downloadLocation: picture.location
     });
@@ -95,13 +95,9 @@ export class UnsplashService {
     }
 
     picture.downloadUrl = downloadLink.response?.url;
-
-    console.log('download url', downloadLink);
   };
 
-
-
-  getUnsplashFavoritePictureBuffer = async (data: UnsplashPictureMetadata) => {
+  public async getUnsplashFavoritePictureBuffer (data: UnsplashPictureMetadata): Promise<void> {
     const response = await fetch(data.downloadUrl!, {
         method: 'get',
       }
@@ -117,7 +113,7 @@ export class UnsplashService {
     data.size = size;
   }
   
-  setDynamoDBMetadataAttribute = async (data: UnsplashPictureMetadata, metadataService: PictureMetadataService): Promise<PictureMetadata> => {
+  public async setDynamoDBMetadataAttribute (data: UnsplashPictureMetadata, metadataService: PictureMetadataService): Promise<PictureMetadata> {
     return new Promise(async (resolve) => {
       try {
         await this.getUnsplashFavoritePictureDownloadUrl(data);
@@ -133,7 +129,7 @@ export class UnsplashService {
     })
   }
 
-  saveUnsplashFavoritesToS3AndDynamoDB = async (data: UnsplashPictureMetadata[], email: string, metadataService: PictureMetadataService, pictureService: DynamoDBPicturesService, s3Service: S3Service) => {
+  public async saveUnsplashFavoritesToS3AndDynamoDB (data: UnsplashPictureMetadata[], email: string, metadataService: PictureMetadataService, pictureService: DynamoDBPicturesService, s3Service: S3Service): Promise<void> {
     try {
       const uploadFavoritePictures = data.map(async (item) => {
         const metadata = await this.setDynamoDBMetadataAttribute(item, metadataService);
@@ -146,8 +142,6 @@ export class UnsplashService {
       })
 
       await Promise.all(uploadFavoritePictures);
-
-      return {message: 'Uploaded'};
     } catch (err) {
       throw new HttpBadRequestError(`Failed to save picture: ${err}`)
     }

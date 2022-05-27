@@ -29,9 +29,9 @@ export const uploadFavoritePictures: APIGatewayProxyHandler = async (event, cont
     const pictureDBService = new DynamoDBPicturesService();
     const s3Service = new S3Service();
 
-    const response = await unsplashManager.uploadFavoritePictures(ids, email, metadataService, pictureDBService, s3Service);
+    await unsplashManager.uploadFavoritePictures(ids, email, metadataService, pictureDBService, s3Service);
 
-    return createResponse(200, response);
+    return createResponse(200, {message: 'Favorites uploaded'});
   } catch (err) {
     return errorHandler(err)
   }

@@ -37,7 +37,7 @@ export class GalleryService {
     };
   }
 
-  private getDBPicturesAndPagesAmount = async (query: Omit<QueryObject, 'page'>, email:string, dbPictureService: DynamoDBPicturesService) => {
+  private async getDBPicturesAndPagesAmount (query: Omit<QueryObject, 'page'>, email:string, dbPictureService: DynamoDBPicturesService){
     try {
       const picturesPerPage = query.limit;
       const picturesTotal = !query.filter ? await dbPictureService.getAllPictures(email) : await dbPictureService.getAllPictures();
@@ -52,23 +52,32 @@ export class GalleryService {
     }
   }
 
-  private getPicturesUrls = async (origin: PictureOwner[], query: Omit<QueryObject, 'filter'>, email: string, s3Service: S3Service) => {
-    const uploadedByASingleUser = werePicturesUploadedByASingleUser(origin, 'email');
-    const picturesForTargetPage = origin!.slice((query.page - 1) * query.limit, query.page * query.limit);
+  private setS3PictureKey (email: string, owners: PictureOwner[], picturesForTargetPage: PictureOwner[], picture: PictureOwner, index: number): string {
+    const uploadedByASingleUser = werePicturesUploadedByASingleUser(owners, 'email');
+    const isThisLoggedInUser = owners.find((item) => item.email === email) !== undefined;
+    const checkPattern = uploadedByASingleUser && isThisLoggedInUser;
+    const folderName = checkPattern ? email : picturesForTargetPage[index].email;
+    const fileName = checkPattern ? picture.name : picturesForTargetPage[index].name;
+
+    return `${folderName}/${fileName}`;
+  }
+
+  private async getPicturesUrls (owners: PictureOwner[], query: Omit<QueryObject, 'filter'>, email: string, s3Service: S3Service): Promise<string[]> {
+    const picturesForTargetPage = owners!.slice((query.page - 1) * query.limit, query.page * query.limit);
 
     return Promise.all(
       picturesForTargetPage.map((picture, index) => {
-          const checkPattern: boolean = uploadedByASingleUser && origin.find((item) => item.email === email) !== undefined;
+          const s3PictureKey = this.setS3PictureKey(email, owners, picturesForTargetPage, picture, index);
 
-          return s3Service.getPreSignedGetUrl(`${checkPattern ? email : picturesForTargetPage[index].email}/${checkPattern ? picture.name : picturesForTargetPage[index].name}`, this.picturesBucketName)
+          return s3Service.getPreSignedGetUrl(s3PictureKey, this.picturesBucketName)
         }))
   }
 
-  getPictures = async (query: QueryObject, email: string, dbPictureService: DynamoDBPicturesService, s3Service: S3Service): Promise<GalleryObject> => {
+  public async getPictures (query: QueryObject, email: string, dbPictureService: DynamoDBPicturesService, s3Service: S3Service): Promise<GalleryObject> {
     try {
       const dbPictures = await this.getDBPicturesAndPagesAmount(query, email, dbPictureService);
       const pictures = dbPictures.pictures;
-      const originInfo: PictureOwner[] = pictures!.map((picture) => {
+      const owner: PictureOwner[] = pictures!.map((picture) => {
         return {
           email: picture.email,
           name: picture.name
@@ -76,7 +85,7 @@ export class GalleryService {
       });
 
       const total = dbPictures.total;
-      const objects = total !== 0 ? await this.getPicturesUrls(originInfo!, query, email, s3Service) : [];
+      const objects = total !== 0 ? await this.getPicturesUrls(owner!, query, email, s3Service) : [];
 
       console.log('objects', objects);
 
@@ -90,8 +99,7 @@ export class GalleryService {
     }
   }
 
-
- uploadPicture = async (email: string, metadata: PictureMetadata, dbPictureService: DynamoDBPicturesService, s3Service: S3Service) => {
+  public async uploadPicture (email: string, metadata: PictureMetadata, dbPictureService: DynamoDBPicturesService, s3Service: S3Service): Promise<string>{
     const fileExtension = metadata.extension.split('/').pop();
     const pictureId = `${uuidv4()}.${fileExtension}`.toLowerCase();
 
@@ -100,14 +108,14 @@ export class GalleryService {
     return s3Service.getPreSignedPutUrl(`${email}/${pictureId}`, this.picturesBucketName, metadata.extension);
   }
 
-  getCroppedPictureBody = async (pictureKey: string, s3Service: S3Service, cropService: CropService): Promise<Buffer> => {
+  public async getCroppedPictureBody (pictureKey: string, s3Service: S3Service, cropService: CropService): Promise<Buffer> {
     const uploadedFullSizeImage = await s3Service.get(pictureKey, this.picturesBucketName);
     const uploadedPictureBody = uploadedFullSizeImage.Body as Buffer;
 
     return cropService.cropImage(uploadedPictureBody);
   }
 
-  getCroppedPictureS3Key = async (pictureKey: string) => {
+  public async getCroppedPictureS3Key (pictureKey: string): Promise<string> {
     const pictureIdWithNoExtension = pictureKey.split('/').pop()?.split('.')[0];
     const pictureExtension = pictureKey.split('.').pop();
     const email = pictureKey.split('/')[0];
@@ -116,13 +124,13 @@ export class GalleryService {
     return croppedPictureS3Key;
   }
 
-  getPictureId = (pictureKey: string) => {
+  public getPictureId (pictureKey: string): string {
     const pictureId = pictureKey.split('/').pop()!;
 
     return pictureId;
   }
 
-  uploadCropImage = async (email: string, croppedPicture: Buffer, pictureId: string, cropKey: string, s3Service: S3Service, dbPictureService: DynamoDBPicturesService) => {
+  public async uploadCroppedImage (email: string, croppedPicture: Buffer, pictureId: string, cropKey: string, s3Service: S3Service, dbPictureService: DynamoDBPicturesService): Promise<void>{
     await s3Service.put(cropKey, croppedPicture, this.picturesBucketName);
 
     await dbPictureService.updateSubClipCreatedValue(email, pictureId!);
