@@ -4,6 +4,7 @@ import { PicturesUploadError, InvalidPageError, TokenError } from "../modules/er
 import {GalleryData, UnsplashPictureUrl, UnsplashSearchResponse} from "../modules/interfaces.js";
 import {setCurrentPageUrl} from "../modules/redirection.service.js";
 import * as env from "../modules/env.js";
+import {currentUrl} from "../modules/env.js";
 
 const galleryPhotos = document.querySelector('.gallery__photos') as HTMLElement;
 const galleryInner = document.querySelector('.gallery__inner') as HTMLElement;
@@ -175,6 +176,7 @@ async function getUnsplashPictures (token: string) {
 
 async function showUnsplashPictures () {
   try {
+    setKeyWordInputValue();
     filterCheckbox.disabled = true;
     setLimitPlaceholder();
 
@@ -433,9 +435,14 @@ function setNewUrl (): void {
   const pageNumber = env.currentUrl.searchParams.get('page') || '1';
   const limit = env.currentUrl.searchParams.get('limit') || '4';
   const filter = env.currentUrl.searchParams.get('filter') || 'false';
-  const keyWord = env.currentUrl.searchParams.get('keyWord') || '';
+  const keyWord = env.currentUrl.searchParams.get('keyWord');
+  let newUrl = `${env.galleryUrl}?page=${pageNumber}&limit=${limit}&filter=${filter}`;
 
-  window.location.href = `${env.galleryUrl}?page=${pageNumber}&limit=${limit}&filter=${filter}&keyWord=${keyWord}`;
+  if (keyWord) {
+    newUrl += `&keyWord=${keyWord}`
+  }
+
+  window.location.href = newUrl;
 }
 
 function showMessage (text: string): void {
@@ -521,7 +528,6 @@ async function changeCurrentPage (e: Event): Promise<void> {
     if (currentActiveLink !== targetClosestLi) {
       env.currentUrl.searchParams.set('page', targetClosestLi?.getAttribute('page-number')!)
       setNewUrl();
-      await showGallery();
 
       currentActiveLink?.classList.remove('active');
       target.classList.add('active');
@@ -549,6 +555,7 @@ function setKeyWordValueToURL () {
 
 function setKeyWordInputValue () {
   const currentKeyWordValue = env.currentUrl.searchParams.get('keyWord');
+
   if (currentKeyWordValue) {
     keyWordInput.value = currentKeyWordValue;
   }
@@ -564,7 +571,6 @@ async function setInitialInformation () {
   checkTokenValidity();
 
   displayUserEmail();
-  setKeyWordInputValue();
   setFavoritesCounterValue();
 
   if (keyWordInput.value === '') {
@@ -666,6 +672,11 @@ function validateKeyWordInput () {
   keyWordButton.disabled = false;
 }
 
+function backToUploadedPictures () {
+  currentUrl.searchParams.delete('keyWord');
+  setNewUrl();
+}
+
 document.addEventListener('DOMContentLoaded', setInitialInformation);
 pagesLinksList.addEventListener('click', changeCurrentPage);
 galleryErrorContainer.addEventListener('click', redirectToTheTargetPage);
@@ -677,7 +688,7 @@ filterCheckbox.addEventListener('change', addFilterValueToURL);
 keyWordButton.addEventListener('click', setKeyWordValueToURL);
 galleryPhotos.addEventListener('click', addToFavorites);
 saveFavoritesButton.addEventListener('click', uploadFavorites);
-backToUploadedButton.addEventListener('click', showGallery);
+backToUploadedButton.addEventListener('click', backToUploadedPictures);
 keyWordInput.addEventListener('input', validateKeyWordInput);
 
 
