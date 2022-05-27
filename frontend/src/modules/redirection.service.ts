@@ -6,6 +6,10 @@ export function setCurrentPageUrl (targetUrl: string): string {
   const filter = env.currentUrl.searchParams.get('filter') || 'false';
   const keyWord = env.currentUrl.searchParams.get('keyWord');
 
+  if (!keyWord) {
+    return `${targetUrl}?page=${pageNumber}&limit=${limit}&filter=${filter}`
+  }
+
   return `${targetUrl}?page=${pageNumber}&limit=${limit}&filter=${filter}&keyWord=${keyWord}`;
 }
 
