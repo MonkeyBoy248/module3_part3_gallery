@@ -132,7 +132,7 @@ async function retrieveUploadLink (file: File) {
 }
 
 async function sendUserPicture () {
-  const file = galleryUploadInput.files![0];
+  let file = galleryUploadInput.files![0];
   const url = await retrieveUploadLink(file);
 
   if (!validateFileType(file)) {
@@ -153,6 +153,8 @@ async function sendUserPicture () {
   if (responseStatus === 500) {
     throw new PicturesUploadError();
   }
+
+  galleryUploadInput.value = '';
 }
 
 async function getUnsplashPictures (token: string) {
