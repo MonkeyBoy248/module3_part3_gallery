@@ -134,7 +134,7 @@ async function signUp () {
     const error = err as Error;
     console.log(error.message)
 
-    setErrorMessage('Failed to sign up');
+    setErrorMessage('Failed to sign up. Please, enter other data');
   }
 }
 
