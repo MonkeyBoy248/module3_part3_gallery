@@ -184,7 +184,11 @@ async function showUnsplashPictures () {
       setEmptyResponseMessage(pictures.result, 'Nothing found');
       backToUploadedButton.disabled = false;
       createPictureTemplate(pictures.result);
-      createLinksTemplate(pictures.total);
+
+      if (pictures.result.length !== 0) {
+        createLinksTemplate(pictures.total);
+      }
+
       setPageNumber();
       favoritesControls.classList.remove('_hidden');
     }

@@ -1,5 +1,5 @@
 import { CustomEventListener, ListenerRemover } from "../modules/listenersClearing.js";
-import {logInServerUrl, signUpServerUrl} from "../modules/env.js";
+import {currentUrl, logInServerUrl, signUpServerUrl} from "../modules/env.js";
 import { InvalidUserDataError } from "../modules/errors.js";
 import { redirectToTheGalleryPage } from "../modules/redirection.service.js";
 import { TokenObject, User } from "../modules/interfaces.js";
@@ -129,6 +129,7 @@ async function logIn () {
 
 async function signUp () {
   try {
+    currentUrl.searchParams.delete('keyWord');
     await sendSignUpRequest();
   } catch (err) {
     const error = err as Error;
