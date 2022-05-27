@@ -1,6 +1,6 @@
-import { Token } from "../modules/token_management.js";
-import { redirectToTheGalleryPage } from "../modules/gallery_redirection.js";
-import { currentUrl, loginUrl } from "../modules/environment_variables.js";
+import { Token } from "../modules/token.service.js";
+import { redirectToTheGalleryPage } from "../modules/redirection.service.js";
+import { currentUrl, loginUrl } from "../modules/env.js";
 
 const homeLink = document.querySelector('.content__home-link');
 
