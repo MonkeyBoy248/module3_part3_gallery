@@ -1,8 +1,9 @@
-import { CustomEventListener, ListenerRemover } from "../modules/custom_event_listener.js";
-import { Token } from "../modules/token_management.js";
+import { CustomEventListener, ListenerRemover } from "../modules/listenersClearing.js";
+import { Token } from "../modules/token.service.js";
 import { PicturesUploadError, InvalidPageError, TokenError } from "../modules/errors.js";
 import {GalleryData, UnsplashPictureUrl, UnsplashSearchResponse} from "../modules/interfaces.js";
-import * as env from "../modules/environment_variables.js";
+import {setCurrentPageUrl} from "../modules/redirection.service.js";
+import * as env from "../modules/env.js";
 
 const galleryPhotos = document.querySelector('.gallery__photos') as HTMLElement;
 const galleryInner = document.querySelector('.gallery__inner') as HTMLElement;
@@ -172,7 +173,6 @@ async function getUnsplashPictures (token: string) {
 
 async function showUnsplashPictures () {
   try {
-    checkTokenValidity();
     filterCheckbox.disabled = true;
     setLimitPlaceholder();
 
@@ -209,9 +209,8 @@ async function sendFavoriteIds () {
       },
       body: JSON.stringify(favoriteIds),
     })
+
     const result = await response.json();
-
-
     console.log('Success', result);
   }
 }
@@ -505,15 +504,6 @@ function setLimitPlaceholder () {
     `${placeholderTemplate} ${lastLimitValue}`
 }
 
-function setCurrentPageUrl (targetUrl: string): string {
-  const limit = env.currentUrl.searchParams.get('limit') || '4';
-  const pageNumber = env.currentUrl.searchParams.get('page') || '1';
-  const filter = env.currentUrl.searchParams.get('filter') || 'false';
-  const keyWord = env.currentUrl.searchParams.get('keyWord');
-
-  return `${targetUrl}?page=${pageNumber}&limit=${limit}&filter=${filter}&keyWord=${keyWord}`;
-}
-
 async function changeCurrentPage (e: Event): Promise<void> {
   const currentActiveLink = pagesLinksList.querySelector('.active');
   const target = e.target as HTMLElement;
@@ -565,9 +555,15 @@ function displayUserEmail () {
 }
 
 async function setInitialInformation () {
+  checkTokenValidity();
+
   displayUserEmail();
   setKeyWordInputValue();
   setFavoritesCounterValue();
+
+  if (keyWordInput.value === '') {
+    keyWordButton.disabled = true;
+  }
 
   const currentKeyWordValue = env.currentUrl.searchParams.get('keyWord')
 
@@ -615,6 +611,8 @@ function addToFavorites (e: Event) {
 }
 
 async function showGallery () {
+  checkTokenValidity();
+
   favoritesControls.classList.add('_hidden');
   setLimitPlaceholder();
   setCurrentCheckboxValue();
@@ -622,7 +620,6 @@ async function showGallery () {
   filterCheckbox.disabled = false;
 
   const token = Token.getToken();
-  console.log('token', token);
 
   if (token) {
     try {
@@ -653,6 +650,16 @@ async function showGallery () {
   }
 }
 
+function validateKeyWordInput () {
+  if (keyWordInput.value === '') {
+    keyWordButton.disabled = true;
+
+    return;
+  }
+
+  keyWordButton.disabled = false;
+}
+
 document.addEventListener('DOMContentLoaded', setInitialInformation);
 pagesLinksList.addEventListener('click', changeCurrentPage);
 galleryErrorContainer.addEventListener('click', redirectToTheTargetPage);
@@ -665,6 +672,7 @@ keyWordButton.addEventListener('click', setKeyWordValueToURL);
 galleryPhotos.addEventListener('click', addToFavorites);
 saveFavoritesButton.addEventListener('click', uploadFavorites);
 backToUploadedButton.addEventListener('click', showGallery);
+keyWordInput.addEventListener('input', validateKeyWordInput);
 
 
 

@@ -145,6 +145,11 @@ body {
   cursor: auto;
 }
 
+._field-button:disabled {
+  opacity: 0.5;
+  cursor: auto;
+}
+
 /*.header__back-to-user-pictures {*/
 /*  background-color: #e9982d;*/
 /*}*/
@@ -152,11 +157,6 @@ body {
 /*.header__back-to-user-pictures:hover {*/
 /*  background-color: #d059e7;*/
 /*}*/
-
-.header__back-to-user-pictures:disabled {
-  opacity: 0.5;
-  cursor: auto;
-}
 
 .header__upload-wrapper {
   display: flex;
