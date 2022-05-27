@@ -4,25 +4,23 @@ import { JwtService} from "@services/jwt.service";
 import { AlreadyExistsError, HttpBadRequestError, HttpUnauthorizedError } from "@floteam/errors";
 import {DynamoDBUserService} from "@models/DynamoDB/services/dynamoDBUser.service";
 import {JwtPayload} from "jsonwebtoken";
+import {JoiService} from "@services/joi.service";
 
 export class AuthService {
-  public validateUserData (data: string): RequestUser {
-    const userData = JSON.parse(data);
+  public async validateUserData (user: RequestUser, joiService: JoiService): Promise<RequestUser> {
+    let validatedUser: RequestUser | undefined;
 
-    if (!userData.email) {
-      throw new HttpBadRequestError('No email was provided');
+    try {
+      validatedUser = await joiService.validateUserObject(user);
+    } catch (err) {
+      console.log(err);
     }
 
-    if (!userData.password) {
-      throw new HttpBadRequestError('No password was provided')
+    if (!validatedUser) {
+      throw new HttpBadRequestError('Invalid user data')
     }
 
-    const userObject: RequestUser = {
-      email: userData.email,
-      password: userData.password
-    }
-
-    return userObject;
+    return validatedUser;
   }
 
   public async signUp (userData: RequestUser, dbUserService: DynamoDBUserService, hashService: HashPasswordService, jwtService: JwtService): Promise<Token> {

@@ -3,6 +3,7 @@ import {DynamoDBPicturesService} from "@models/DynamoDB/services/dynamoDBPicture
 import {S3Service} from "@services/S3.service";
 import {CropService} from "@services/crop.service";
 import {GalleryObject, RawQueryParams} from "./gallery.interface";
+import {JoiService} from "@services/joi.service";
 
 export class GalleryManager {
   private readonly service: GalleryService;
@@ -11,8 +12,8 @@ export class GalleryManager {
     this.service = new GalleryService();
   }
 
-  public async getPictures (rawQuery: RawQueryParams, email: string, dbPictureService: DynamoDBPicturesService, s3Service: S3Service): Promise<GalleryObject> {
-    const queryParams = await this.service.validateAndConvertParams(rawQuery, email, dbPictureService);
+  public async getPictures (rawQuery: RawQueryParams, email: string, dbPictureService: DynamoDBPicturesService, s3Service: S3Service, joiService: JoiService): Promise<GalleryObject> {
+    const queryParams = await this.service.convertParams(rawQuery, email, dbPictureService, joiService);
 
     return this.service.getPictures(queryParams, email, dbPictureService, s3Service);
   }

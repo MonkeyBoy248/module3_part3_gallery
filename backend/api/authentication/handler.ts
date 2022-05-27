@@ -9,6 +9,7 @@ import {JwtPayload} from "jsonwebtoken";
 import {DynamoDBUserService} from "@models/DynamoDB/services/dynamoDBUser.service";
 import {JwtService} from "@services/jwt.service";
 import {HashPasswordService} from "@services/hashPassword.service";
+import {JoiService} from "@services/joi.service";
 
 export const signUp: APIGatewayProxyHandlerV2 = async (event, context) => {
   try {
@@ -18,8 +19,9 @@ export const signUp: APIGatewayProxyHandlerV2 = async (event, context) => {
     const dbUserService = new DynamoDBUserService();
     const jwtService = new JwtService();
     const hashService = new HashPasswordService();
+    const joiService = new JoiService();
 
-    const response = await manager.signUp(user, dbUserService, hashService, jwtService);
+    const response = await manager.signUp(user, dbUserService, hashService, jwtService, joiService);
 
     return createResponse(200, response);
   } catch (err) {
@@ -35,8 +37,9 @@ export const logIn: APIGatewayProxyHandlerV2 = async (event, context) => {
     const dbUserService = new DynamoDBUserService();
     const jwtService = new JwtService();
     const hashService = new HashPasswordService();
+    const joiService = new JoiService();
 
-    const token = await manager.logIn(user, dbUserService, hashService, jwtService);
+    const token = await manager.logIn(user, dbUserService, hashService, jwtService, joiService);
 
     return createResponse(200, { token });
   } catch (err) {

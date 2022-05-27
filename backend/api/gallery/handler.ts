@@ -6,6 +6,7 @@ import {DynamoDBPicturesService} from "@models/DynamoDB/services/dynamoDBPicture
 import {S3Service} from "@services/S3.service";
 import {CropService} from "@services/crop.service";
 import {RawQueryParams} from "./gallery.interface";
+import {JoiService} from "@services/joi.service";
 
 export const getPictures: APIGatewayProxyHandler = async (event, context) => {
   try {
@@ -20,8 +21,9 @@ export const getPictures: APIGatewayProxyHandler = async (event, context) => {
     }
     const dbPicturesService = new DynamoDBPicturesService();
     const s3Service = new S3Service();
+    const joiService = new JoiService();
 
-    const responseObject = await manager.getPictures(rawQueryParams, email, dbPicturesService, s3Service);
+    const responseObject = await manager.getPictures(rawQueryParams, email, dbPicturesService, s3Service, joiService);
 
     return createResponse(200, responseObject);
   } catch (err) {

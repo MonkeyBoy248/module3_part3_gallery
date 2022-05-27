@@ -6,50 +6,36 @@ import {getEnv} from "@helper/environment";
 import {v4 as uuidv4} from "uuid";
 import {werePicturesUploadedByASingleUser} from "@helper/checkDuplicates";
 import {CropService} from "@services/crop.service";
+import {JoiService} from "@services/joi.service";
+import {countPagesAmount} from "@helper/countPagesAmount";
 
 export type PictureOwner = Pick<PictureResponse, 'email' | 'name'>;
 
 export class GalleryService {
   private picturesBucketName = getEnv('BUCKET_NAME');
 
-  validateAndConvertParams = async (rawQuery: RawQueryParams, email: string, dbPictureService: DynamoDBPicturesService): Promise<QueryObject> => {
-    const pageNumber = parseInt(rawQuery.page, 10);
-    const limitNumber = parseInt(rawQuery.limit, 10);
-    const filterBool = rawQuery.filter === 'false';
-    const totalPagesAmount = (await this.getDBPicturesAndPagesAmount({limit: limitNumber, filter: filterBool}, email, dbPictureService)).total;
+  convertParams = async (rawQuery: RawQueryParams, email: string, dbPictureService: DynamoDBPicturesService, joiService: JoiService): Promise<QueryObject> => {
+    let validatedParams: RawQueryParams | undefined;
 
-    if (isNaN(pageNumber) || isNaN(limitNumber)) {
-      throw new HttpBadRequestError('Page or limit value is not a number');
+    try {
+      validatedParams = await joiService.validateQueryObject(rawQuery);
+    } catch (err) {
+      console.log(err);
     }
 
-    if (!isFinite(pageNumber) || !isFinite(limitNumber)) {
+    if (!validatedParams) {
       throw new HttpBadRequestError('Invalid query parameters');
     }
 
-    if ((pageNumber < 1 || pageNumber > totalPagesAmount) && totalPagesAmount !== 0) {
-      throw new HttpBadRequestError('Invalid page number');
-    }
+    const pageNumber = parseInt(validatedParams.page);
+    const limitNumber = parseInt(validatedParams.limit);
+    const filterBool = validatedParams.filter === 'false';
 
     return {
       page: pageNumber,
       limit: limitNumber,
       filter: filterBool
     };
-  }
-
-  private async getDBPicturesAndPagesAmount (query: Omit<QueryObject, 'page'>, email:string, dbPictureService: DynamoDBPicturesService){
-    try {
-      const picturesPerPage = query.limit;
-      const picturesTotal = !query.filter ? await dbPictureService.getAllPictures(email) : await dbPictureService.getAllPictures();
-      const totalPages = Math.ceil(picturesTotal!.length / picturesPerPage);
-
-      return {
-        total: totalPages,
-        pictures: picturesTotal
-      }
-    } catch (err) {
-      throw new HttpInternalServerError('Failed to get pictures amount');
-    }
   }
 
   private setS3PictureKey (email: string, owners: PictureOwner[], picturesForTargetPage: PictureOwner[], picture: PictureOwner, index: number): string {
@@ -74,9 +60,25 @@ export class GalleryService {
   }
 
   public async getPictures (query: QueryObject, email: string, dbPictureService: DynamoDBPicturesService, s3Service: S3Service): Promise<GalleryObject> {
+    let pictures: PictureResponse[] | undefined;
+    let total: number;
+
     try {
-      const dbPictures = await this.getDBPicturesAndPagesAmount(query, email, dbPictureService);
-      const pictures = dbPictures.pictures;
+      pictures = !query.filter ? await dbPictureService.getAllPictures(email) : await dbPictureService.getAllPictures();
+      total = countPagesAmount(pictures!.length, query.limit);
+    } catch (err) {
+      throw new HttpBadRequestError('Failed to retrieve pictures from DB');
+    }
+
+    if (!pictures) {
+      throw new HttpBadRequestError('Failed to create response object');
+    }
+
+    if ((query.page < 1 || query.page > total) && total !== 0) {
+      throw new HttpBadRequestError('Invalid page number');
+    }
+
+    try {
       const owner: PictureOwner[] = pictures!.map((picture) => {
         return {
           email: picture.email,
@@ -84,10 +86,7 @@ export class GalleryService {
         }
       });
 
-      const total = dbPictures.total;
       const objects = total !== 0 ? await this.getPicturesUrls(owner!, query, email, s3Service) : [];
-
-      console.log('objects', objects);
 
       return  {
         objects,
@@ -95,7 +94,7 @@ export class GalleryService {
         page: query.page
       }
     } catch (err) {
-      throw new HttpInternalServerError('Failed to create response object')
+      throw new HttpInternalServerError('Failed to get pictures urls')
     }
   }
 
